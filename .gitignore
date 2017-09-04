@@ -1,0 +1,24 @@
+# ignoring Python 3.x bytecode
+__pycache__/
+cnvfinder.egg-info
+# ignoring files with the following extensions
+*.bam
+*.bai
+*.bed
+*.idx
+*.txt
+*.html
+*.vcf
+*.gz
+*.tbi
+*.sh
+*.pdf
+
+# ignoring folders
+test
+img
+build
+dist
+
+# ignoring files
+config.ini
