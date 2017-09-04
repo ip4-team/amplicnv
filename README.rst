@@ -1,1 +1,1 @@
-CNVfinder is a Python package for Copy Number Variation (CNV) detection using data from whole exome sequencing (WES).
+CNVfinder is a Python 3.x package for copy number variation (CNV) detection on whole exome sequencing (WES) data from amplicon-based enrichment technologies.
