@@ -13,7 +13,7 @@ Welcome to **CNVfinder's** documentation!
 
 What is **CNVfinder**?
 ======================
-CNVfinder is a **Python 3.x** package for copy number (CNV) variation detection on whole exome sequencing (WES) data from amplicon-based enrichment technologies. Besides the `BED <https://genome.ucsc.edu/FAQ/FAQformat#format1>`_ and `BAM <http://software.broadinstitute.org/software/igv/bam>`_ (binary SAM) files, the user may specify a `VCF <http://www.internationalgenome.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-40/>`_ (Variant Call Format) file for each BAM file, allowing a more accurate analysis.
+CNVfinder is a **Python 3.x** package for copy number variation (CNV) detection on whole exome sequencing (WES) data from amplicon-based enrichment technologies. Besides the `BED <https://genome.ucsc.edu/FAQ/FAQformat#format1>`_ and `BAM <http://software.broadinstitute.org/software/igv/bam>`_ (binary SAM) files, the user may specify a `VCF <http://www.internationalgenome.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-40/>`_ (Variant Call Format) file for each BAM file, allowing a more accurate analysis.
 CNVfinder was designed to please three kind of people: those familiar with coding, those more comfortable with user friendly programs, and those who fit both styles.
 
 CNVfinder is split in four main modules: **bedloader**, **nrrhandler**; **vcfhandler**; and **cnvdetector**. Their name speak for themselves: bedloader loads/writes BED files, nrrhandler handles number of reads in regions loaded from BAM files using pysam.AlignmentFile, vcfhandler handles VCF files using pysam.VariantFile, and finally, cnvdetector puts all these modules together for CNV detection.
@@ -38,12 +38,12 @@ All dependencies are installed when using pip3, however if you want to install/u
 
 Running tests
 =============
-After installing CNVfinder, all you have to do is to create a config file (`here it's how to do it <#>`_), do some preprocessing (`check it here <#>`_), and type the following on the Python command line::
+After installing CNVfinder, all you have to do is to create a config file (`here it's how to do it <#configuration-file>`_), do some preprocessing (`check it here <#preprocessing>`_), and type the following on the Python command line::
 
 	from cnvfinder import CNVConfig
 	CNVConfig('/path/to/file/filename.ini')
 
-This will provide you with some beautiful graphics and a BED file for visualization of the detected CNVs on `IGV <http://software.broadinstitute.org/software/igv/>`_. After all, one thing to keep in mind is that BAM files are normally very large, what means that the above script will take a while to finish. However, you can use our nrrhandler module in order to speed the things up for future CNV detection tests that will be using the same BAM files (`see here <#>`_).
+This will provide you with some beautiful graphics and a BED file for visualization of the detected CNVs on `IGV <http://software.broadinstitute.org/software/igv/>`_. After all, one thing to keep in mind is that BAM files are normally very large, what means that the above script will take a while to finish. However, you can use our nrrhandler module in order to speed the things up for future CNV detection tests that will be using the same BAM files (`see here <#preprocessing>`_).
 
 Configuration file
 ===================
@@ -116,4 +116,7 @@ The above snippet will count the number of reads in regions (defined by the BED 
 in the BAM file and store this information on a file named as '{bamfile name}.bam.txt'. The next time 
 the {bamfile name}.bam is used (file.bam in our example), the nrrhandler will get the number of reads 
 from the text file, what is way faster than extract this information from the BAM file. This is very useful 
-for the creation of a exome baseline and run multiple tests using it.  
+for the creation of a exome baseline and run multiple tests using it.
+
+Having issues using CNVfinder?
+You can contact us at our `Github project page <https://github.com/ip4-team/cnvfinder>`_ and we'll be very happy in helping you. 
