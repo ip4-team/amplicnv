@@ -12,7 +12,6 @@ cnvfinder.egg-info
 *.gz
 *.tbi
 *.sh
-*.pdf
 
 # ignoring folders
 test
