@@ -116,7 +116,7 @@ The above snippet will count the number of reads in regions (defined by the BED 
 in the BAM file and store this information on a file named as '{bamfile name}.bam.txt'. The next time 
 the {bamfile name}.bam is used (file.bam in our example), the nrrhandler will get the number of reads 
 from the text file, what is way faster than extract this information from the BAM file. This is very useful 
-for the creation of a exome baseline and run multiple tests using it.
+for the creation of an exome baseline and run multiple tests using it.
 
 Having issues using CNVfinder?
 You can contact us at our `Github project page <https://github.com/ip4-team/cnvfinder>`_ and we'll be very happy in helping you. 
