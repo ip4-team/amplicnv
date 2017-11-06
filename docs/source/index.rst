@@ -47,7 +47,7 @@ This will provide you with some beautiful graphics and a BED file for visualizat
 
 Configuration file
 ===================
-In the following snippet you can find a example of a `configuration file <https://docs.python.org/3/library/configparser.html>`_. There are four mandatory sections: bed, sample, baseline, and output. Each of these sections has its own mandatory keys and values: bedfile, bamfile, bamfiles, and path, respectively. Basically, these aforementioned values represent the names of the files that will be used in the CNV detection process::
+In the following snippet you can find an example of a `configuration file <https://docs.python.org/3/library/configparser.html>`_. There are four mandatory sections: bed, sample, baseline, and output. Each of these sections has its own mandatory keys and values: bedfile, bamfile, bamfiles, and path, respectively. Basically, these aforementioned values represent the names of the files that will be used in the CNV detection process::
 
 	[bed]
 		bedfile = /path/to/AmpliSeqExome.20131001.designed.bed

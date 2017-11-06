@@ -19,6 +19,7 @@ test
 img
 build
 dist
+.idea
 
 # ignoring files
 config.ini
