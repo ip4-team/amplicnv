@@ -87,7 +87,7 @@ There are other sections and parameters that can be specified:
 * **targtest**
 	* **minread**: minimum number of reads for a target to be considered when calculating the sample/baseline # reads ratio
 	* **below_cutoff**:
-	* **above_cutoff**: these two parameters are used in order to filter out rations that are out of range (< below_cutoff or > above_cutoff) when computing std/IQR
+	* **above_cutoff**: these two parameters are used in order to filter out ratios that are out of range (< below_cutoff or > above_cutoff) when computing std/IQR
 	* **bins**: number of bins to create when plotting the graphic for target x ratio
 	* **method**: method used for bins creation (block, window, or chr_group are available)
 	* **size**: when using mode 'block', the block size can be specified. Default: 200
@@ -109,7 +109,7 @@ There are other sections and parameters that can be specified:
 
 Preprocessing
 =============
-The idea of preprocessing when applying CNVfinder is that you can speed up the CNV detection 
+The idea of preprocessing when applying CNVfinder is that you can speed up the CNV detection
 if you store some information extracted from BAM and/or VCF files in the first time when using them. 
 Actually, this extraction task will happen every time if you don't take this 
 proprocessing step seriously! You really DO NOT want this! **BAM preprocessing** can be achieved using the nrrhandler module::
