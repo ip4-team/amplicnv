@@ -90,16 +90,22 @@ There are other sections and parameters that can be specified:
 	* **above_cutoff**: these two parameters are used in order to filter out rations that are out of range (< below_cutoff or > above_cutoff) when computing std/IQR
 	* **bins**: number of bins to create when plotting the graphic for target x ratio
 	* **method**: method used for bins creation (block, window, or chr_group are available)
+	* **size**: when using mode 'block', the block size can be specified. Default: 200
+	* **step**: when using mode 'block', the step between two consecutive blocks can be specified. Default: 10
+	* **metric**: measure of variability to be used when analyzing sample ratios. Standard deviation (std) and interquartile range (IQR) are available. Default: std/IQR.
+	* **interval_range**: multiplier used when applying IQR or std. Default: 3 for std and 1.5 for IQR.
+	* **cnv_like_range**: multiplier used when applying IQR or std. Default: 0.7 * interval_range.
+	* **maxdist**: maximum distance allowed between a cnv-like block to a cnv block in order to the cnvlike block be a valid cnv. Default: 15000000.
 * **vartest**
 	* **mindp**: minimum number of read depth for a variant to be considered
-* **targtest and vartest**
 	* **mode**: method used to group up targets when analyzing (by target, by gene, and block are available)
-	* **size**: when using mode 'block', the block size can be specified. Default: 200/400
-	* **step**: when using mode 'block', the step between two consecutive blocks can be specified. Default: 10/400
-	* **metric**: measure of variability to be used when analyzing sample ratios. Standard deviation (std) and interquartile range (IQR) are available. Default: std/IQR.
-	* **targtest/vartest**: interval_range: multiplier used when applying IQR or std. Default: 3 for std and 1.5 for IQR.
-	* **cnv_like_range**: multiplier used when applying IQR or std. Default: 0.7 * interval_range.
-	* **maxdist**: maximum distance allowed between a cnvlike block to a cnv block in order to the cnvlike block be a valid cnv. Default: 15000000.
+	* **size**: when using mode 'block', the block size can be specified. Default: 400
+	* **step**: when using mode 'block', the step between two consecutive blocks can be specified. Default: 40
+	* **metric**: measure of variability to be used when analyzing variants. Interquartile range (IQR) is available.
+	* **interval_range**: multiplier used when applying IQR. Default: 1.5.
+	* **cnv_like_range**: multiplier used when applying IQR. Default: 0.7 * interval_range.
+	* **maxdist**: maximum distance allowed between a cnv-like block to a cnv block in order to the cnv-like block be a valid cnv. Default: 15000000.
+
 
 Preprocessing
 =============
