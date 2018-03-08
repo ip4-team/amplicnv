@@ -58,8 +58,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'CNVfinder'
-copyright = '2017, Instituto de Pesquisa Pelé Pequeno Príncipe'
-author = 'IP4 Team at Instituto de Pesquisa Pelé Pequeno Príncipe'
+copyright = '2018, Pele Pequeno Principe Research Institute'
+author = 'IP4 Team at Pele Pequeno Principe Research Institute'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -272,7 +272,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'CNVfinder.tex', 'CNVfinder Documentation',
-     'IP4 Team at Instituto de Pesquisa Pelé Pequeno Príncipe', 'manual'),
+     'IP4 Team at Pele Pequeno Principe Research Institute', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
