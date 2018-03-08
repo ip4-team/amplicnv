@@ -26,7 +26,7 @@ CNVfinder and its dependencies can be easily installed using the `Python Package
 
 Dependencies
 ============
-All dependencies are installed when using pip3, however if you want to install/use CNVfinder in other ways, you should install the lastest version of the distributions:
+All dependencies are installed when using the command above, however, if you want to install/use CNVfinder in other ways, you should install the lastest version of the distributions:
 
 * **scipy**: ``pip3 install -U scipy``
 * **scikit-learn**: ``pip3 install -U scikit-learn``
@@ -36,6 +36,13 @@ All dependencies are installed when using pip3, however if you want to install/u
 * **numpy**: ``pip3 install -U numpy``
 * **numexpr**: ``pip3 install -U numexpr``
 
+Before we start
+===============
+When running the cnvdetector module, keep in mind the following assumptions:
+ 
+* your user has permission to write in the directory where BAM files are located.
+* VCF files are named according to BAM filenames. For example, a given sample is represented by a BAM file named "sample1.bam" and a corresponding VCF file named "sample1.vcf.gz".
+ 
 Running tests
 =============
 After installing CNVfinder, all you have to do is to create a config file (`here it's how to do it <#configuration-file>`_), do some preprocessing (`check it here <#preprocessing>`_), and type the following on the Python command line::
