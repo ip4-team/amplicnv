@@ -19,6 +19,7 @@ img
 build
 dist
 .idea
+.vscode
 
 # ignoring files
 config.ini
