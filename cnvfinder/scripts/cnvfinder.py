@@ -9,16 +9,22 @@ import sys
 from enum import Enum
 
 
-class Modules(Enum):
+class SubCommands(Enum):
     BEDLOADER = 'bedloader'
     CNVDETECTOR = 'cnvdetector'
     NRRHANDLER = 'nrrhandler'
     VCFHANDLER = 'vcfhandler'
+    COUNT = 'count'
+    COMPARE = 'compare'
 
 
 def create_parser(description: str, usage: str = None) -> argparse.ArgumentParser:
     return argparse.ArgumentParser(description=description, usage=usage,
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+
+def parse_sub_command(parser: argparse.ArgumentParser) -> argparse.Namespace:
+    return parser.parse_args(sys.argv[2:])
 
 
 class CNVFinder(object):
@@ -35,12 +41,16 @@ Available commands used in various situations:
     \tPreprocess amplicons defined in a BED file
     
     {}
+    \tCount the number of reads aligned to each target
+    
+    {}
+    \tCompare a test sample with a baseline of samples considering read depth
+    
+    {}
     \tDetect copy number variation on whole exome sequencing data
     \tCreate plots
     
     {}
-    \tCompute read depth for each sequencing target
-    \tCompare baseline samples x test sample (ratio)
     \tCreate read depth and ratio related plots
     
     {}
@@ -49,7 +59,7 @@ Available commands used in various situations:
     \tCreate BAF related plots
     
 For getting help of a specific command use: cnvfinder <command> --help
-    '''.format(Modules.BEDLOADER.value, Modules.CNVDETECTOR.value, Modules.NRRHANDLER.value, Modules.VCFHANDLER.value))
+    '''.format(SubCommands.BEDLOADER.value, SubCommands.COUNT.value, SubCommands.COMPARE.value, SubCommands.CNVDETECTOR.value, SubCommands.NRRHANDLER.value, SubCommands.VCFHANDLER.value))
 
         parser.add_argument('command', help='Module to run')
         args = parser.parse_args(sys.argv[1:2])
@@ -74,8 +84,26 @@ For getting help of a specific command use: cnvfinder <command> --help
                             help='Minimum number of nucleotides for a valid target')
         parser.add_argument('--max-pool', type=int, default=None,
                             help='Maximum number of origin pools allowed for a valid target')
+        self.args = parse_sub_command(parser)
 
-        self.args = parser.parse_args(sys.argv[2:])
+    def count(self):
+        parser = create_parser('Count the number of reads aligned to each target',
+                               usage='''cnvfinder count [<args>]''')
+        parser.add_argument('--target', type=str, required=True,
+                            help='Path to file in which sequencing amplicons are listed')
+        parser.add_argument('--bamfile', type=str, required=True,
+                            help='alignment filename (bam format)')
+        parser.add_argument('--region', type=str,
+                            help='Limit target definition to a given region. It should be in the form: '
+                                 'chr1:10000-90000')
+        parser.add_argument('--parallel', dest='parallel', action='store_true', default=True,
+                            help='Count target read depth in parallel')
+        self.args = parse_sub_command(parser)
+
+    def compare(self):
+        parser = create_parser('Compare a test sample with a baseline of samples considering read depth',
+                               usage='''cnvfinder count [<args>]''')
+        self.args = parse_sub_command(parser)
 
     def cnvdetector(self):
         pass
@@ -85,10 +113,7 @@ For getting help of a specific command use: cnvfinder <command> --help
         #                                               '{} parameters'.format(Modules.CNVDETECTOR.value))
 
     def nrrhandler(self):
-        pass
-        # Modules.NRRHANDLER
-        # nrrhandler_group = parser.add_argument_group(Modules.NRRHANDLER.value,
-        #                                              '{} parameters'.format(Modules.NRRHANDLER.value))
+        parser = create_parser('')
 
     def vcfhandler(self):
         pass
