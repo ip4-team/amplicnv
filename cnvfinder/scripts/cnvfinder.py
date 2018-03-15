@@ -10,15 +10,22 @@ from enum import Enum
 
 
 class SubCommands(Enum):
+    # bedloader module
     BEDLOADER = 'bedloader'
-    CNVDETECTOR = 'cnvdetector'
-    NRRHANDLER = 'nrrhandler'
-    VCFHANDLER = 'vcfhandler'
+    # cnvdetector module
+    DETECT = 'detect'
+    # vcfhandler module
+    BAFCOMPUTE = 'bafcompute'
+    VCFCOMPARE = 'vcfcompare'
+    VCFPLOT = 'vcfplot'  # TODO: add this functionality
+    # nrrhandler module
     COUNT = 'count'
     COMPARE = 'compare'
 
 
-def create_parser(description: str, usage: str = None) -> argparse.ArgumentParser:
+def create_parser(description: str, command: str = 'command', usage: str = None) -> argparse.ArgumentParser:
+    if usage is None:
+        usage = 'cnvfinder {} [<args>]'.format(command)
     return argparse.ArgumentParser(description=description, usage=usage,
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -38,28 +45,26 @@ class CNVFinder(object):
 Available commands used in various situations:
 
     {}
-    \tPreprocess amplicons defined in a BED file
+    \tDetect copy number variation in a test sample applying read depth and variant data (optional)
     
     {}
     \tCount the number of reads aligned to each target
     
     {}
     \tCompare a test sample with a baseline of samples considering read depth
-    
+            
     {}
-    \tDetect copy number variation on whole exome sequencing data
-    \tCreate plots
-    
-    {}
-    \tCreate read depth and ratio related plots
-    
-    {}
-    \tFilter variants according to a baseline
     \tCompute B-allele frequency (BAF)
-    \tCreate BAF related plots
+    
+    {}
+    \tCompare a test sample with a baseline of samples considering B-allele frequency and other variant data
+
+    {}
+    \tPreprocess amplicons defined in a BED file
     
 For getting help of a specific command use: cnvfinder <command> --help
-    '''.format(SubCommands.BEDLOADER.value, SubCommands.COUNT.value, SubCommands.COMPARE.value, SubCommands.CNVDETECTOR.value, SubCommands.NRRHANDLER.value, SubCommands.VCFHANDLER.value))
+    '''.format(SubCommands.DETECT.value, SubCommands.COUNT.value, SubCommands.COMPARE.value,
+               SubCommands.BAFCOMPUTE.value, SubCommands.VCFCOMPARE.value, SubCommands.BEDLOADER.value))
 
         parser.add_argument('command', help='Module to run')
         args = parser.parse_args(sys.argv[1:2])
@@ -71,7 +76,7 @@ For getting help of a specific command use: cnvfinder <command> --help
 
     def bedloader(self):
         parser = create_parser('Preprocess amplicons defined in a BED file',
-                               usage='''cnvfinder bedloader [<args>]''')
+                               command=SubCommands.BEDLOADER.value)
         parser.add_argument('--target', type=str, required=True,
                             help='Path to file in which sequencing amplicons are listed')
         parser.add_argument('--region', type=str,
@@ -88,7 +93,7 @@ For getting help of a specific command use: cnvfinder <command> --help
 
     def count(self):
         parser = create_parser('Count the number of reads aligned to each target',
-                               usage='''cnvfinder count [<args>]''')
+                               command=SubCommands.COUNT.value)
         parser.add_argument('--target', type=str, required=True,
                             help='Path to file in which sequencing amplicons are listed')
         parser.add_argument('--bamfile', type=str, required=True,
@@ -98,28 +103,75 @@ For getting help of a specific command use: cnvfinder <command> --help
                                  'chr1:10000-90000')
         parser.add_argument('--parallel', dest='parallel', action='store_true', default=True,
                             help='Count target read depth in parallel')
+        parser.add_argument('--output', type=str, required=True,
+                            help='Output filename')
         self.args = parse_sub_command(parser)
 
     def compare(self):
         parser = create_parser('Compare a test sample with a baseline of samples considering read depth',
-                               usage='''cnvfinder count [<args>]''')
+                               command=SubCommands.COMPARE.value)
+        parser.add_argument('--baseline', required=True, action='append', nargs='?',
+                            help='Path to baseline sample bamfile. This parameter can be passed multiple times: '
+                                 '--baseline file1.bam --baseline file2.bam')
+        parser.add_argument('--test', type=str, required=True,
+                            help='Path to test sample bamfile')
+        parser.add_argument('--target', type=str, required=True,
+                            help='Path to file in which sequencing amplicons are listed')
+        parser.add_argument('--size', type=int, default=200,
+                            help='Block size when sliding window')
+        parser.add_argument('--step', type=int, default=10,
+                            help='Step size when sliding window')
+        parser.add_argument('--metric', type=str, default='std', choices={'std', 'IQR'},
+                            help='param used to define which metric should be used when comparing')
+        parser.add_argument('--interval-range', type=float, default=3,
+                            help='Value to multiply metric by')
+        parser.add_argument('--min-read', type=int, default=30,
+                            help='Minimum number of reads expected for valid targets')
+        parser.add_argument('--below-cutoff', type=float, default=0.7,
+                            help='Filter out data (ratios) below this cutoff')
+        parser.add_argument('--above-cutoff', type=float, default=1.3,
+                            help='Filter out data (ratios) above this cutoff')
+        parser.add_argument('--max-dist', type=int, default=15000000,
+                            help='Maximum distance allowed of a cnv-like block, to its closest cnv block, for it be a '
+                                 'cnv as well')
+        parser.add_argument('--cnv-like-range', type=float, default=0.7,
+                            help='Value to multiply interval_range by in order to detect cnv-like (CNVs when applying '
+                                 'looser calculations)')
+        parser.add_argument('--bins', type=int, default=500,
+                            help='Number of bins to use when plotting ratio data')
+        parser.add_argument('--method', type=str, default='chr_group', choices={'chr_group'})
+        parser.add_argument('--output', type=str, default='results',
+                            help='Output directory name')
         self.args = parse_sub_command(parser)
 
-    def cnvdetector(self):
-        pass
-        # Modules.CNVDETECTOR
-        # cnvdetector_group = parser.add_argument_group(Modules.CNVDETECTOR.value,
-        #
-        #                                               '{} parameters'.format(Modules.CNVDETECTOR.value))
+    def detect(self):
+        parser = create_parser('Detect copy number variation in a test sample applying read depth and variant data ('
+                               'optional)',
+                               command=SubCommands.DETECT.value)
+        self.args = parse_sub_command(parser)
 
-    def nrrhandler(self):
-        parser = create_parser('')
+    def bafcompute(self):
+        parser = create_parser('Compute B-allele frequency (BAF)',
+                               command=SubCommands.BAFCOMPUTE.value)
+        parser.add_argument('--vcf', type=str, required=True,
+                            help='Path to variant file (VCF)')
+        parser.add_argument('--output', type=str, required=True,
+                            help='Output filename')
+        self.args = parse_sub_command(parser)
 
-    def vcfhandler(self):
-        pass
-        # Modules.VCFHANDLER
-        # vcfhandler_group = parser.add_argument_group(Modules.VCFHANDLER.value,
-        #                                              '{} parameters'.format(Modules.VCFHANDLER.value))
+    def vcfcompare(self):
+        parser = create_parser('Compare a test sample with a baseline of samples considering B-allele frequency',
+                               command=SubCommands.VCFCOMPARE.value)
+        parser.add_argument('--baseline', required=True, action='append', nargs='?',
+                            help='Path to baseline sample vcf file. This parameter can be passed multiple times: '
+                                 '--baseline file1.vcf.gz --baseline file2.vcf.gz')
+        parser.add_argument('--test', type=str, required=True,
+                            help='Path to test sample vcf file')
+        parser.add_argument('--metric', type=str, default='std', choices={'std', 'IQR'},
+                            help='param used to define which metric should be used when comparing')
+        parser.add_argument('--output', type=str, default='results',
+                            help='Output directory name')
+        self.args = parse_sub_command(parser)
 
 
 def main():
