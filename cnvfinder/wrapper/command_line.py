@@ -10,6 +10,7 @@ from abc import ABCMeta
 from abc import abstractmethod
 from enum import Enum
 
+from cnvfinder.nrrhandler import NRR
 from ..utils import overrides
 
 
@@ -24,6 +25,25 @@ def parse_sub_command(parser: argparse.ArgumentParser) -> argparse.Namespace:
     return parser.parse_args(sys.argv[2:])
 
 
+class Command(metaclass=ABCMeta):
+    def __init__(self, name: str, description: str):
+        self.name = name
+        self.description = description
+
+
+class Count(Command):
+    def __init__(self):
+        super().__init__(self.__class__.__name__.lower(), 'Count the number of reads aligned to each target')
+
+    @staticmethod
+    def run(bedfile, bamfile, region, parallel, output):
+        nrr = NRR(bedfile=bedfile,
+                  bamfile=bamfile,
+                  region=region,
+                  parallel=parallel)
+        nrr.save(output)
+
+
 class SubCommands(Enum):
     # bedloader module
     BEDLOADER = 'bedloader'
@@ -34,8 +54,18 @@ class SubCommands(Enum):
     VCFCOMPARE = 'vcfcompare'
     VCFPLOT = 'vcfplot'  # TODO: add this functionality
     # nrrhandler module
-    COUNT = 'count'
     COMPARE = 'compare'
+
+
+class ArgDesc(Enum):
+    target = 'Path to file in which sequencing amplicons are listed'
+    region = 'Limit target definition to a given region. It should be in the form: chr1:10000-90000'
+    spacing = 'Number of nucleotides to ignore at amplicon start and end, to avoid overlapping reads'
+    min_data = 'Minimum number of nucleotides for a valid target'
+    max_pool = 'Maximum number of origin pools allowed for a valid target'
+    bamfile = 'alignment filename (bam format)'
+    parallel = 'Count target read depth in parallel'
+    output = 'Output filename'
 
 
 class ICNVfinder(metaclass=ABCMeta):
@@ -78,7 +108,7 @@ Available commands used in various situations:
     \tDetect copy number variation in a test sample applying read depth and variant data (optional)
     
     {}
-    \tCount the number of reads aligned to each target
+    \t{}
     
     {}
     \tCompare a test sample with a baseline of samples considering read depth
@@ -93,7 +123,7 @@ Available commands used in various situations:
     \tPreprocess amplicons defined in a BED file
     
 For getting help of a specific command use: cnvfinder <command> --help
-    '''.format(SubCommands.DETECT.value, SubCommands.COUNT.value, SubCommands.COMPARE.value,
+    '''.format(SubCommands.DETECT.value, Count().name, Count().description, SubCommands.COMPARE.value,
                SubCommands.BAFCOMPUTE.value, SubCommands.VCFCOMPARE.value, SubCommands.BEDLOADER.value))
 
         parser.add_argument('command', help='Module to run')
@@ -123,8 +153,8 @@ For getting help of a specific command use: cnvfinder <command> --help
 
     @overrides(ICNVfinder)
     def count(self):
-        parser = create_parser('Count the number of reads aligned to each target',
-                               command=SubCommands.COUNT.value)
+        parser = create_parser(Count().description,
+                               command=Count().name)
         parser.add_argument('--target', type=str, required=True,
                             help='Path to file in which sequencing amplicons are listed')
         parser.add_argument('--bamfile', type=str, required=True,
@@ -228,4 +258,3 @@ For getting help of a specific command use: cnvfinder <command> --help
 
 def main():
     opts = Wrapper()
-
