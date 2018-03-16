@@ -1,7 +1,7 @@
-# ignoring Python 3.x bytecode
 __pycache__/
 cnvfinder.egg-info
-# ignoring files with the following extensions
+venv
+
 *.bam
 *.bai
 *.bed
@@ -13,7 +13,6 @@ cnvfinder.egg-info
 *.tbi
 *.sh
 
-# ignoring folders
 test
 img
 build
@@ -21,5 +20,4 @@ dist
 .idea
 .vscode
 
-# ignoring files
 config.ini

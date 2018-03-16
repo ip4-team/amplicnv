@@ -11,10 +11,10 @@ from collections import defaultdict
 
 
 def classify_by_count(row, default='u', prop=0, attrs=['-', '+']):
-    '''
+    """
     Classify a given list (register) according to the
     appearance proportion of unique attributes (column values).
-    The main ideia is that some attributes defined by 'attrs' parameter
+    The main idea is that some attributes defined by 'attrs' parameter
     cannot display simultaneously a proportion higher than 'prop' considering
     the total number of attributes (prop rule).
     Wheen a given register doesn't brake this rule, it is classified according
@@ -29,7 +29,7 @@ def classify_by_count(row, default='u', prop=0, attrs=['-', '+']):
 
     Returns:
         (typeof(row[0])): register's class
-    '''
+    """
     counters = defaultdict(lambda: 0)
     # count unique label appearances
     for c in row:
@@ -47,7 +47,7 @@ def classify_by_count(row, default='u', prop=0, attrs=['-', '+']):
 
 
 def classify_by_mode(row, default='u'):
-    '''
+    """
     Classify a given list according to the most frequent element.
     In case there is no most frequent, the class is defined
     by default str.
@@ -58,7 +58,7 @@ def classify_by_mode(row, default='u'):
 
     Returns:
         (typeof(row[0])): register's class
-    '''
+    """
     try:
         row_mode = mode(row)
     except StatisticsError:
@@ -67,7 +67,7 @@ def classify_by_mode(row, default='u'):
 
 
 def filter_by_cutoff(df, col, below_cutoff, above_cutoff):
-    '''
+    """
     Filter a given df depending on values
     (below_cutoff and above_cutoff) that are in a given col
 
@@ -79,13 +79,13 @@ def filter_by_cutoff(df, col, below_cutoff, above_cutoff):
 
     Returns:
          filtered dataframe (pandas.DataFrame)
-    '''
+    """
     return df[(df.iloc[:, col] < above_cutoff) &
               (df.iloc[:, col] > below_cutoff)]
 
 
 def IQR(df, col):
-    '''
+    """
     Compute Interquartile Range (IQR)
 
     Parameters:
@@ -94,14 +94,14 @@ def IQR(df, col):
 
     Returns:
          Q1, Q3, and IQR
-    '''
+    """
     Q1 = df.iloc[:, col].quantile(0.25)
     Q3 = df.iloc[:, col].quantile(0.75)
-    return Q1, Q3, Q3-Q1
+    return Q1, Q3, Q3 - Q1
 
 
 def std(df, col):
-    '''
+    """
     Compute Standard Deviation (std)
 
     Parameters:
@@ -110,12 +110,12 @@ def std(df, col):
 
      Returns:
          std
-    '''
+    """
     return df.iloc[:, col].std()
 
 
 def below_range(test_value, metric, center, interval_range):
-    '''
+    """
     Check whether test_value is smaller (<) than a certain value
     that is computed as: center - metric * interval_range
 
@@ -126,12 +126,12 @@ def below_range(test_value, metric, center, interval_range):
          interval_range (number): value to multiply metric by
     Returns:
          True or False
-    '''
-    return(test_value < (center - metric * interval_range))
+    """
+    return (test_value < (center - metric * interval_range))
 
 
 def above_range(test_value, metric, center, interval_range):
-    '''
+    """
     Check whether test_value is larger (>) than a certain value
     that is computed as: center + metric * interval_range
 
@@ -143,12 +143,12 @@ def above_range(test_value, metric, center, interval_range):
 
     Returns:
          True or False
-    '''
-    return(test_value > (center + metric * interval_range))
+    """
+    return (test_value > (center + metric * interval_range))
 
 
 def isbimodal(bafs, bins=[0.2, 0.4, 0.6, 0.8], interval_range=1.5):
-    '''
+    """
     Verify if data (bafs) have bimodal distribution
 
     Parameters:
@@ -158,14 +158,14 @@ def isbimodal(bafs, bins=[0.2, 0.4, 0.6, 0.8], interval_range=1.5):
 
      Returns:
          True or False
-    '''
+    """
     hist = histogram(bafs, bins)
     # len(bin[0.4:0.6]) * 1.5 < len(bin[0.2:0.4] + len(bin(0.6:0.8)))
-    return(hist[0][1] * interval_range < hist[0][0] + hist[0][2])
+    return (hist[0][1] * interval_range < hist[0][0] + hist[0][2])
 
 
 def compute_metric(df, col, metric, center=1):
-    '''
+    """
     Compute IQR or STD depending on "metric" param
 
     Parameters:
@@ -176,7 +176,7 @@ def compute_metric(df, col, metric, center=1):
 
     Returns:
          IQR() or std()
-    '''
+    """
 
     if metric == 'IQR':
         return IQR(df, col)

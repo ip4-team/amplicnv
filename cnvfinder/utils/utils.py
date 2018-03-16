@@ -12,10 +12,11 @@ import errno
 
 
 class GenericDescriptor(object):
-    '''
+    """
     Get and set attribute data in a given instance
     by using its getter and setter
-    '''
+    """
+
     def __init__(self, getter, setter):
         self.getter = getter
         self.setter = setter
@@ -30,7 +31,7 @@ class GenericDescriptor(object):
 
 
 def validstr(attr_name, empty_allowed=True):
-    '''
+    """
     Check if a given attribute is a valid str
 
     Parameters:
@@ -39,12 +40,13 @@ def validstr(attr_name, empty_allowed=True):
 
     Returns:
          decorator
-    '''
+    """
+
     def decorator(cls):
-        '''
+        """
         Take a class definition, process it, and return a modified class
         with the same name as the one it was passed
-        '''
+        """
         name = '_' + attr_name
 
         def getter(self):
@@ -53,18 +55,20 @@ def validstr(attr_name, empty_allowed=True):
         def setter(self, value):
             if value is not None:
                 assert isinstance(value, str), (
-                    'Attribute ' + attr_name + ' must be str')
+                        'Attribute ' + attr_name + ' must be str')
             if not empty_allowed and not value:
                 raise ValueError('Attribute {0} cannot be empty'.format(
                     attr_name))
             setattr(self, name, value)
+
         setattr(cls, attr_name, GenericDescriptor(getter, setter))
         return cls
+
     return decorator
 
 
 def number(s):
-    '''
+    """
     try to cast a string (if any) to a number (int or float)
 
     Parameters:
@@ -73,7 +77,7 @@ def number(s):
     Returns:
          s (int/float) if it's already a float or int
          n (int/float) s converted to int or float
-    '''
+    """
     if isinstance(s, str):
         try:
             return int(s)
@@ -86,14 +90,15 @@ def number(s):
 
 
 class NumberProperty(object):
-    '''
+    """
     Define number properties
-    '''
+    """
+
     def __init__(self, name):
-        '''
+        """
         Parameters:
              name (str): property name
-        '''
+        """
         self.name = name
 
     def __get__(self, obj, objtype):
@@ -105,20 +110,21 @@ class NumberProperty(object):
         except ValueError:
             name = self.name.split('_')[-1]
             print('Warning: "{}" must be a number or str(number), '.format(name) +
-                   'but "{}" was passed!'.format(value))
+                  'but "{}" was passed!'.format(value))
             print('Things will probably fail in a while...')
 
 
 @validstr('region', empty_allowed=True)
 class Region(object):
-    '''
+    """
     Handle region string (chr:chrStart-chrEnd)
-    '''
+    """
+
     def __init__(self, region):
-        '''
+        """
         Parameters:
              region (str): the region itself
-        '''
+        """
         self.as_string = region
         self.as_tuple = self.__totuple(region)
 
@@ -145,13 +151,13 @@ class Region(object):
             return '{0}'.format(*self.as_tuple)
 
     def __totuple(self, region):
-        '''
+        """
         Write string "chr:chrStart-chrEnd" as tuple: (chr, chrStart, chrEnd)
 
         Returns:
              location (tuple): if regions exists
              None: if there is n region
-        '''
+        """
         if self.as_string is None:
             return None
 
@@ -179,11 +185,12 @@ class Region(object):
 
 
 class ConfigfileParser(object):
-    '''
+    """
     Handle config.ini file parsing
-    '''
+    """
+
     def __init__(self, filename, params):
-        '''
+        """
         Parameters:
              filename (str): filename
              params (dict): dictionary discribing whether params
@@ -195,13 +202,13 @@ class ConfigfileParser(object):
                       'output':  'm',
                       'targtest': 'o'
                   }
-        '''
+        """
         self.filename = filename
         self.sections_params = params
         self.sections = self.__parseconfig()
 
     def __getopts(self, section):
-        '''
+        """
         Get options from section
 
         Parameters:
@@ -209,7 +216,7 @@ class ConfigfileParser(object):
 
         Returns:
              optdict (defaultdict): dictionary containing "section" options
-        '''
+        """
         config = configparser.ConfigParser()
         config.read(self.filename)
 
@@ -235,9 +242,9 @@ class ConfigfileParser(object):
         return optdict
 
     def __parseconfig(self):
-        '''
+        """
         Parse config file
-        '''
+        """
         sections = defaultdict(lambda: None)
         for key, value in self.sections_params.items():
             sections[key] = self.__getopts(key)
@@ -251,16 +258,17 @@ class ConfigfileParser(object):
 @validstr('orig_ext', empty_allowed=False)
 @validstr('prom_ext', empty_allowed=True)
 class ExtensionManager(object):
-    '''
+    """
     Manages two different file extensions (rename files)
-    '''
+    """
+
     def __init__(self, filename, orig_ext, prom_ext):
-        '''
+        """
         Parameters:
              filename (str): filename
              orig_ext (str): original extension
              prom_ext (str): new extension
-        '''
+        """
         self.orig_ext = orig_ext
         self.prom_ext = prom_ext
         self.filename = filename
@@ -282,7 +290,7 @@ class ExtensionManager(object):
 
 
 def ismultlist(x):
-    '''
+    """
     Verify if a list is multidimensional
 
     Parameters:
@@ -290,7 +298,7 @@ def ismultlist(x):
 
      Returns:
           True/False: whether it's a multimensional list
-    '''
+    """
     if x:
         return ((isinstance(x, list)) and
                 isinstance(x[0], list))
@@ -299,13 +307,13 @@ def ismultlist(x):
 
 
 def createdirs(dirs):
-    '''
+    """
     Try to create every dir in dirs meanwhile tell the user
     what is going on
 
     Parameters:
         dirs (list): list of dirs
-    '''
+    """
     print('In case they don\'t exist, creating directories:')
     for d in dirs:
         createdir(d)
@@ -313,12 +321,12 @@ def createdirs(dirs):
 
 
 def createdir(path):
-    '''
+    """
     Try to create a dir if it does not exist already
 
     Parameters:
          path (str): dir path
-    '''
+    """
     try:
         os.makedirs(path)
     except OSError as exception:
@@ -327,7 +335,7 @@ def createdir(path):
 
 
 def overrides(interface_class):
-    '''
+    """
     Define "overrides" property
 
     Parameters:
@@ -335,15 +343,17 @@ def overrides(interface_class):
 
     Returns:
          overrider (method/obj): the property
-    '''
+    """
+
     def overrider(method):
-        assert(method.__name__ in dir(interface_class))
+        assert (method.__name__ in dir(interface_class))
         return method
+
     return overrider
 
 
 def appenddir(path, dirname):
-    '''
+    """
     Append a dirname to a path string.
 
     Parameters:
@@ -352,7 +362,7 @@ def appenddir(path, dirname):
 
     Returns:
         (str): path/dirname
-    '''
+    """
     if path.endswith('/'):
         return '{}{}'.format(path, dirname)
     else:
