@@ -6,7 +6,22 @@
 
 import argparse
 import sys
+from abc import ABCMeta
+from abc import abstractmethod
 from enum import Enum
+
+from ..utils import overrides
+
+
+def create_parser(description: str, command: str = 'command', usage: str = None) -> argparse.ArgumentParser:
+    if usage is None:
+        usage = 'cnvfinder {} [<args>]'.format(command)
+    return argparse.ArgumentParser(description=description, usage=usage,
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+
+def parse_sub_command(parser: argparse.ArgumentParser) -> argparse.Namespace:
+    return parser.parse_args(sys.argv[2:])
 
 
 class SubCommands(Enum):
@@ -23,18 +38,33 @@ class SubCommands(Enum):
     COMPARE = 'compare'
 
 
-def create_parser(description: str, command: str = 'command', usage: str = None) -> argparse.ArgumentParser:
-    if usage is None:
-        usage = 'cnvfinder {} [<args>]'.format(command)
-    return argparse.ArgumentParser(description=description, usage=usage,
-                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+class ICNVfinder(metaclass=ABCMeta):
+    @abstractmethod
+    def detect(self):
+        pass
+
+    @abstractmethod
+    def count(self):
+        pass
+
+    @abstractmethod
+    def compare(self):
+        pass
+
+    @abstractmethod
+    def bafcompute(self):
+        pass
+
+    @abstractmethod
+    def vcfcompare(self):
+        pass
+
+    @abstractmethod
+    def bedloader(self):
+        pass
 
 
-def parse_sub_command(parser: argparse.ArgumentParser) -> argparse.Namespace:
-    return parser.parse_args(sys.argv[2:])
-
-
-class CNVFinder(object):
+class Wrapper(ICNVfinder):
     def __init__(self):
         self.args = None
         parser = create_parser('CNVfinder is a Python 3.x package for copy number (CNV) '
@@ -71,9 +101,9 @@ For getting help of a specific command use: cnvfinder <command> --help
         if not hasattr(self, args.command):
             sys.exit('Unrecognized {} command'.format(args.command))
 
-        # use dispatch pattern to invoke method with same name
         getattr(self, args.command)()
 
+    @overrides(ICNVfinder)
     def bedloader(self):
         parser = create_parser('Preprocess amplicons defined in a BED file',
                                command=SubCommands.BEDLOADER.value)
@@ -91,6 +121,7 @@ For getting help of a specific command use: cnvfinder <command> --help
                             help='Maximum number of origin pools allowed for a valid target')
         self.args = parse_sub_command(parser)
 
+    @overrides(ICNVfinder)
     def count(self):
         parser = create_parser('Count the number of reads aligned to each target',
                                command=SubCommands.COUNT.value)
@@ -107,6 +138,7 @@ For getting help of a specific command use: cnvfinder <command> --help
                             help='Output filename')
         self.args = parse_sub_command(parser)
 
+    @overrides(ICNVfinder)
     def compare(self):
         parser = create_parser('Compare a test sample with a baseline of samples considering read depth',
                                command=SubCommands.COMPARE.value)
@@ -144,12 +176,14 @@ For getting help of a specific command use: cnvfinder <command> --help
                             help='Output directory name')
         self.args = parse_sub_command(parser)
 
+    @overrides(ICNVfinder)
     def detect(self):
         parser = create_parser('Detect copy number variation in a test sample applying read depth and variant data ('
                                'optional)',
                                command=SubCommands.DETECT.value)
         self.args = parse_sub_command(parser)
 
+    @overrides(ICNVfinder)
     def bafcompute(self):
         parser = create_parser('Compute B-allele frequency (BAF)',
                                command=SubCommands.BAFCOMPUTE.value)
@@ -159,6 +193,7 @@ For getting help of a specific command use: cnvfinder <command> --help
                             help='Output filename')
         self.args = parse_sub_command(parser)
 
+    @overrides(ICNVfinder)
     def vcfcompare(self):
         parser = create_parser('Compare a test sample with a baseline of samples considering B-allele frequency',
                                command=SubCommands.VCFCOMPARE.value)
@@ -169,14 +204,28 @@ For getting help of a specific command use: cnvfinder <command> --help
                             help='Path to test sample vcf file')
         parser.add_argument('--metric', type=str, default='std', choices={'std', 'IQR'},
                             help='param used to define which metric should be used when comparing')
+        parser.add_argument('--interval-range', type=float, default=3,
+                            help='Value to multiply metric by')
+        parser.add_argument('--size', type=int, default=400,
+                            help='Block size when sliding window')
+        parser.add_argument('--step', type=int, default=40,
+                            help='Step size when sliding window')
+        parser.add_argument('--cnv-like-range', type=float, default=0.7,
+                            help='Value to multiply interval_range by in order to detect cnv-like (CNVs when applying '
+                                 'looser calculations)')
+        parser.add_argument('--max-dist', type=int, default=15000000,
+                            help='Maximum distance allowed of a cnv-like block, to its closest cnv block, for it be a '
+                                 'cnv as well')
         parser.add_argument('--output', type=str, default='results',
                             help='Output directory name')
         self.args = parse_sub_command(parser)
 
+    def show_args(self):
+        opts = [opt for opt in dir(self.args) if not opt.startswith('_')]
+        for opt in opts:
+            print('{}: {}'.format(opt, getattr(self.args, opt)))
+
 
 def main():
-    CNVFinder()
+    opts = Wrapper()
 
-
-if __name__ == '__main__':
-    main()
