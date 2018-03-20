@@ -11,7 +11,6 @@ from abc import abstractmethod
 from enum import Enum
 
 from cnvfinder.nrrhandler import NRR
-from ..utils import overrides
 
 
 def create_parser(description: str, command: str = 'command', usage: str = None) -> argparse.ArgumentParser:
@@ -35,73 +34,6 @@ def get_arg_help_from_enum(arg: Enum):
     if type(arg.value) == dict:
         return list(arg.value.items())[-1][-1]
     return arg.value
-
-
-class Command(object):
-    def __init__(self, name: str, description: str):
-        self.name = name
-        self.description = description
-
-
-class Detect(Command):
-    def __init__(self):
-        super().__init__(self.__class__.__name__.lower(), 'Detect copy number variation in a test sample applying '
-                                                          'read depth and variant data (optional)')
-
-    @staticmethod
-    def run():
-        pass
-
-
-class Bedloader(Command):
-    def __init__(self):
-        super().__init__(self.__class__.__name__.lower(), 'Preprocess amplicons defined in a BED file')
-
-    @staticmethod
-    def run():
-        pass
-
-
-class Count(Command):
-    def __init__(self):
-        super().__init__(self.__class__.__name__.lower(), 'Count the number of reads aligned to each target')
-
-    @staticmethod
-    def run(bedfile, bamfile, region, parallel, output):
-        nrr = NRR(bedfile=bedfile,
-                  bamfile=bamfile,
-                  region=region,
-                  parallel=parallel)
-        nrr.save(output)
-
-
-class Compare(Command):
-    def __init__(self):
-        super().__init__(self.__class__.__name__.lower(), 'Compare a test sample with a baseline of samples '
-                                                          'considering read depth')
-
-    @staticmethod
-    def run():
-        pass
-
-
-class BafCompute(Command):
-    def __init__(self):
-        super().__init__(self.__class__.__name__.lower(), 'Compute B-allele frequency (BAF)')
-
-    @staticmethod
-    def run():
-        pass
-
-
-class VCFCompare(Command):
-    def __init__(self):
-        super().__init__(self.__class__.__name__.lower(), 'Compare a test sample with a baseline of samples '
-                                                          'considering B-allele frequency and other variant data')
-
-    @staticmethod
-    def run():
-        pass
 
 
 class ArgDesc(Enum):
@@ -135,191 +67,199 @@ class ArgDesc(Enum):
     vcf = 'Path to variant file (VCF)'
 
 
-class ICNVfinder(metaclass=ABCMeta):
-    @abstractmethod
-    def detect(self):
-        pass
-
-    @abstractmethod
-    def count(self):
-        pass
-
-    @abstractmethod
-    def compare(self):
-        pass
-
-    @abstractmethod
-    def bafcompute(self):
-        pass
-
-    @abstractmethod
-    def vcfcompare(self):
-        pass
-
-    @abstractmethod
-    def bedloader(self):
-        pass
-
-
-class Wrapper(ICNVfinder):
+class CNVFinderWrapper(object):
     def __init__(self):
-        self.args = None
         parser = create_parser('CNVfinder is a Python 3.x package for copy number (CNV) '
                                'variation detection on whole exome sequencing (WES) data from '
                                'amplicon-based enrichment technologies',
                                usage='''cnvfinder <command> [<args>]
-                               
+
 Available commands:
 
     {}
     \t{}
-    
-    {}
-    \t{}
-    
-    {}
-    \t{}
-            
-    {}
-    \t{}
-    
+
     {}
     \t{}
 
     {}
     \t{}
-    
-For getting help of a specific command use: cnvfinder <command> --help'''.format(Detect().name, Detect().description,
-                                                                                 Count().name, Count().description,
-                                                                                 Compare().name, Compare().description,
-                                                                                 BafCompute().name,
-                                                                                 BafCompute().description,
-                                                                                 VCFCompare().name,
-                                                                                 VCFCompare().description,
-                                                                                 Bedloader().name,
-                                                                                 Bedloader().description))
+
+    {}
+    \t{}
+
+    {}
+    \t{}
+
+    {}
+    \t{}
+
+For getting help of a specific command use: cnvfinder <command> --help'''.format(self.Detect().name,
+                                                                                 self.Detect().description,
+                                                                                 self.Count().name,
+                                                                                 self.Count().description,
+                                                                                 self.Compare().name,
+                                                                                 self.Compare().description,
+                                                                                 self.Bafcompute().name,
+                                                                                 self.Bafcompute().description,
+                                                                                 self.Vcfcompare().name,
+                                                                                 self.Vcfcompare().description,
+                                                                                 self.Bedloader().name,
+                                                                                 self.Bedloader().description))
 
         parser.add_argument('command', help='Module to run')
         args = parser.parse_args(sys.argv[1:2])
-        if not hasattr(self, args.command):
+        if not hasattr(self, args.command.capitalize()):
             sys.exit('Unrecognized {} command'.format(args.command))
 
-        getattr(self, args.command)()
+        getattr(self, args.command.capitalize())().run()
 
-    @overrides(ICNVfinder)
-    def bedloader(self):
-        parser = create_parser(Bedloader().description,
-                               command=Bedloader().name)
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.target), type=str, required=True,
-                            help=get_arg_help_from_enum(ArgDesc.target))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.region), type=str,
-                            help=get_arg_help_from_enum(ArgDesc.region))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.spacing), type=int, default=20,
-                            help=get_arg_help_from_enum(ArgDesc.spacing))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.min_data), type=int, default=50,
-                            help=get_arg_help_from_enum(ArgDesc.min_data))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.max_pool), type=int, default=None,
-                            help=get_arg_help_from_enum(ArgDesc.max_pool))
-        self.args = parse_sub_command(parser)
+    class Command(metaclass=ABCMeta):
+        def __init__(self, name: str, description: str):
+            self.name = name
+            self.description = description
 
-    @overrides(ICNVfinder)
-    def count(self):
-        parser = create_parser(Count().description,
-                               command=Count().name)
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.target), type=str, required=True,
-                            help=get_arg_help_from_enum(ArgDesc.target))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.bamfile), type=str, required=True,
-                            help=get_arg_help_from_enum(ArgDesc.bamfile))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.region), type=str,
-                            help=get_arg_help_from_enum(ArgDesc.region))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.parallel), dest=ArgDesc.parallel, action='store_true',
-                            default=True, help=get_arg_help_from_enum(ArgDesc.parallel))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.output), type=str, required=True,
-                            help=get_arg_help_from_enum(ArgDesc.output))
-        self.args = parse_sub_command(parser)
+        @abstractmethod
+        def run(self):
+            pass
 
-    @overrides(ICNVfinder)
-    def compare(self):
-        parser = create_parser(Compare().description,
-                               command=Compare().name)
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.b_baseline), required=True, action='append', nargs='?',
-                            help=get_arg_help_from_enum(ArgDesc.b_baseline))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.b_test), type=str, required=True,
-                            help=get_arg_help_from_enum(ArgDesc.b_test))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.target), type=str, required=True,
-                            help=get_arg_help_from_enum(ArgDesc.target))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.size), type=int, default=200,
-                            help=get_arg_help_from_enum(ArgDesc.size))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.step), type=int, default=10,
-                            help=get_arg_help_from_enum(ArgDesc.step))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.metric), type=str, default='std', choices={'std', 'IQR'},
-                            help=get_arg_help_from_enum(ArgDesc.metric))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.interval_range), type=float, default=3,
-                            help=get_arg_help_from_enum(ArgDesc.interval_range))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.min_read), type=int, default=30,
-                            help=get_arg_help_from_enum(ArgDesc.min_read))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.below_cutoff), type=float, default=0.7,
-                            help=get_arg_help_from_enum(ArgDesc.below_cutoff))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.above_cutoff), type=float, default=1.3,
-                            help=get_arg_help_from_enum(ArgDesc.above_cutoff))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.max_dist), type=int, default=15000000,
-                            help=get_arg_help_from_enum(ArgDesc.max_dist))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.cnv_like_range), type=float, default=0.7,
-                            help=get_arg_help_from_enum(ArgDesc.cnv_like_range))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.bins), type=int, default=500,
-                            help=get_arg_help_from_enum(ArgDesc.bins))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.method), type=str,
-                            default='chr_group', choices={'chr_group'})
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.outdir), type=str, default='results',
-                            help=get_arg_help_from_enum(ArgDesc.outdir))
-        print(parser)
-        self.args = parse_sub_command(parser)
+    class Detect(Command):
+        def __init__(self):
+            super().__init__(self.__class__.__name__.lower(), 'Detect copy number variation in a test sample applying '
+                                                              'read depth and variant data (optional)')
 
-    @overrides(ICNVfinder)
-    def detect(self):
-        parser = create_parser(Detect().description,
-                               command=Detect().name)
-        self.args = parse_sub_command(parser)
+        def run(self):
+            parser = create_parser(self.description,
+                                   command=self.name)
 
-    @overrides(ICNVfinder)
-    def bafcompute(self):
-        parser = create_parser(BafCompute().description,
-                               command=BafCompute().name)
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.vcf), type=str, required=True,
-                            help=get_arg_help_from_enum(ArgDesc.vcf))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.output), type=str, required=True,
-                            help=get_arg_help_from_enum(ArgDesc.output))
-        self.args = parse_sub_command(parser)
+            args = parse_sub_command(parser)
 
-    @overrides(ICNVfinder)
-    def vcfcompare(self):
-        parser = create_parser(VCFCompare().description,
-                               command=VCFCompare().name)
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.v_baseline), required=True, action='append', nargs='?',
-                            help=get_arg_help_from_enum(ArgDesc.v_baseline))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.v_test), type=str, required=True,
-                            help=get_arg_help_from_enum(ArgDesc.v_test))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.metric), type=str, default='IQR', choices={'std', 'IQR'},
-                            help=get_arg_help_from_enum(ArgDesc.metric))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.interval_range), type=float, default=1.5,
-                            help=get_arg_help_from_enum(ArgDesc.interval_range))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.size), type=int, default=400,
-                            help=get_arg_help_from_enum(ArgDesc.size))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.step), type=int, default=40,
-                            help=get_arg_help_from_enum(ArgDesc.step))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.cnv_like_range), type=float, default=0.7,
-                            help=get_arg_help_from_enum(ArgDesc.cnv_like_range))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.max_dist), type=int, default=15000000,
-                            help=get_arg_help_from_enum(ArgDesc.max_dist))
-        parser.add_argument(get_arg_name_from_enum(ArgDesc.outdir), type=str, default='results',
-                            help=get_arg_help_from_enum(ArgDesc.outdir))
-        self.args = parse_sub_command(parser)
+    class Count(Command):
+        def __init__(self):
+            super().__init__(self.__class__.__name__.lower(), 'Count the number of reads aligned to each target')
 
-    def show_args(self):
-        opts = [opt for opt in dir(self.args) if not opt.startswith('_')]
-        for opt in opts:
-            print('{}: {}'.format(opt, getattr(self.args, opt)))
+        def run(self):
+            parser = create_parser(self.description,
+                                   self.name)
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.target), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.target))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.bamfile), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.bamfile))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.region), type=str,
+                                help=get_arg_help_from_enum(ArgDesc.region))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.parallel), dest=ArgDesc.parallel.name,
+                                action='store_true', default=True, help=get_arg_help_from_enum(ArgDesc.parallel))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.output), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.output))
+            args = parse_sub_command(parser)
+
+            nrr = NRR(bedfile=args.target,
+                      bamfile=args.bamfile,
+                      region=args.region,
+                      parallel=args.parallel)
+            nrr.save(args.output)
+
+    class Compare(Command):
+        def __init__(self):
+            super().__init__(self.__class__.__name__.lower(), 'Compare a test sample with a baseline of samples '
+             
+                                                              'considering read depth')
+
+        def run(self):
+            parser = create_parser(self.description,
+                                   command=self.name)
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.b_baseline), required=True, action='append', nargs='?',
+                                help=get_arg_help_from_enum(ArgDesc.b_baseline))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.b_test), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.b_test))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.target), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.target))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.size), type=int, default=200,
+                                help=get_arg_help_from_enum(ArgDesc.size))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.step), type=int, default=10,
+                                help=get_arg_help_from_enum(ArgDesc.step))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.metric), type=str, default='std', choices={'std', 'IQR'},
+                                help=get_arg_help_from_enum(ArgDesc.metric))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.interval_range), type=float, default=3,
+                                help=get_arg_help_from_enum(ArgDesc.interval_range))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.min_read), type=int, default=30,
+                                help=get_arg_help_from_enum(ArgDesc.min_read))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.below_cutoff), type=float, default=0.7,
+                                help=get_arg_help_from_enum(ArgDesc.below_cutoff))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.above_cutoff), type=float, default=1.3,
+                                help=get_arg_help_from_enum(ArgDesc.above_cutoff))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.max_dist), type=int, default=15000000,
+                                help=get_arg_help_from_enum(ArgDesc.max_dist))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.cnv_like_range), type=float, default=0.7,
+                                help=get_arg_help_from_enum(ArgDesc.cnv_like_range))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.bins), type=int, default=500,
+                                help=get_arg_help_from_enum(ArgDesc.bins))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.method), type=str,
+                                default='chr_group', choices={'chr_group'})
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.outdir), type=str, default='results',
+                                help=get_arg_help_from_enum(ArgDesc.outdir))
+            args = parse_sub_command(parser)
+
+    class Bafcompute(Command):
+        def __init__(self):
+            super().__init__(self.__class__.__name__.lower(), 'Compute B-allele frequency (BAF)')
+
+        def run(self):
+            parser = create_parser(self.description,
+                                   command=self.name)
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.vcf), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.vcf))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.output), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.output))
+            args = parse_sub_command(parser)
+
+    class Vcfcompare(Command):
+        def __init__(self):
+            super().__init__(self.__class__.__name__.lower(), 'Compare a test sample with a baseline of samples '
+                                                              'considering B-allele frequency and other variant data')
+
+        def run(self):
+            parser = create_parser(self.description,
+                                   self.name)
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.v_baseline), required=True, action='append', nargs='?',
+                                help=get_arg_help_from_enum(ArgDesc.v_baseline))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.v_test), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.v_test))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.metric), type=str, default='IQR', choices={'std', 'IQR'},
+                                help=get_arg_help_from_enum(ArgDesc.metric))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.interval_range), type=float, default=1.5,
+                                help=get_arg_help_from_enum(ArgDesc.interval_range))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.size), type=int, default=400,
+                                help=get_arg_help_from_enum(ArgDesc.size))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.step), type=int, default=40,
+                                help=get_arg_help_from_enum(ArgDesc.step))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.cnv_like_range), type=float, default=0.7,
+                                help=get_arg_help_from_enum(ArgDesc.cnv_like_range))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.max_dist), type=int, default=15000000,
+                                help=get_arg_help_from_enum(ArgDesc.max_dist))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.outdir), type=str, default='results',
+                                help=get_arg_help_from_enum(ArgDesc.outdir))
+            args = parse_sub_command(parser)
+
+    class Bedloader(Command):
+        def __init__(self):
+            super().__init__(self.__class__.__name__.lower(), 'Preprocess amplicons defined in a BED file')
+
+        def run(self):
+            parser = create_parser(self.description,
+                                   command=self.name)
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.target), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.target))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.region), type=str,
+                                help=get_arg_help_from_enum(ArgDesc.region))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.spacing), type=int, default=20,
+                                help=get_arg_help_from_enum(ArgDesc.spacing))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.min_data), type=int, default=50,
+                                help=get_arg_help_from_enum(ArgDesc.min_data))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.max_pool), type=int, default=None,
+                                help=get_arg_help_from_enum(ArgDesc.max_pool))
+            args = parse_sub_command(parser)
 
 
 def main():
-    opts = Wrapper()
+    opts = CNVFinderWrapper()
