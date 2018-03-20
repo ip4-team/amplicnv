@@ -73,11 +73,15 @@ class CNVFinderWrapper(object):
         commands = [command.lower() for command in dir(self) if not command.startswith('_')]
         available_commands = ''
         for command in commands:
-            available_commands += '''
+            try:
+                available_commands += '''
     {}
     \t{}
             '''.format(getattr(self, command.capitalize())().name,
                        getattr(self, command.capitalize())().description)
+            except AttributeError:
+                pass
+
         parser = create_parser('CNVfinder is a Python 3.x package for copy number (CNV) '
                                'variation detection on whole exome sequencing (WES) data from '
                                'amplicon-based enrichment technologies',
