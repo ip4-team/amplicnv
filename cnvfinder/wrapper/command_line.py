@@ -118,6 +118,7 @@ class ArgDesc(Enum):
     b_test = {'test': 'Path to test sample bamfile'}
     v_baseline = {'baseline': 'Path to baseline sample vcf file. This parameter can be passed multiple times: '
                               '--baseline file1.vcf.gz --baseline file2.vcf.gz'}
+    v_test = 'Path to test sample vcf file'
     size = 'Block size when sliding window'
     step = 'Step size when sliding window'
     metric = 'Define which metric should be used when comparing'
@@ -168,7 +169,7 @@ class Wrapper(ICNVfinder):
                                'amplicon-based enrichment technologies',
                                usage='''cnvfinder <command> [<args>]
                                
-Available commands used in various situations:
+Available commands:
 
     {}
     \t{}
@@ -284,37 +285,34 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
     def bafcompute(self):
         parser = create_parser(BafCompute().description,
                                command=BafCompute().name)
-        parser.add_argument('--vcf', type=str, required=True,
-                            help='Path to variant file (VCF)')
-        parser.add_argument('--output', type=str, required=True,
-                            help='Output filename')
+        parser.add_argument(get_arg_name_from_enum(ArgDesc.vcf), type=str, required=True,
+                            help=get_arg_help_from_enum(ArgDesc.vcf))
+        parser.add_argument(get_arg_name_from_enum(ArgDesc.output), type=str, required=True,
+                            help=get_arg_help_from_enum(ArgDesc.output))
         self.args = parse_sub_command(parser)
 
     @overrides(ICNVfinder)
     def vcfcompare(self):
         parser = create_parser(VCFCompare().description,
                                command=VCFCompare().name)
-        parser.add_argument('--baseline', required=True, action='append', nargs='?',
-                            help='Path to baseline sample vcf file. This parameter can be passed multiple times: '
-                                 '--baseline file1.vcf.gz --baseline file2.vcf.gz')
-        parser.add_argument('--test', type=str, required=True,
-                            help='Path to test sample vcf file')
-        parser.add_argument('--metric', type=str, default='std', choices={'std', 'IQR'},
-                            help='param used to define which metric should be used when comparing')
-        parser.add_argument('--interval-range', type=float, default=3,
-                            help='Value to multiply metric by')
-        parser.add_argument('--size', type=int, default=400,
-                            help='Block size when sliding window')
-        parser.add_argument('--step', type=int, default=40,
-                            help='Step size when sliding window')
-        parser.add_argument('--cnv-like-range', type=float, default=0.7,
-                            help='Value to multiply interval_range by in order to detect cnv-like (CNVs when applying '
-                                 'looser calculations)')
-        parser.add_argument('--max-dist', type=int, default=15000000,
-                            help='Maximum distance allowed of a cnv-like block, to its closest cnv block, for it be a '
-                                 'cnv as well')
-        parser.add_argument('--output', type=str, default='results',
-                            help='Output directory name')
+        parser.add_argument(get_arg_name_from_enum(ArgDesc.v_baseline), required=True, action='append', nargs='?',
+                            help=get_arg_help_from_enum(ArgDesc.v_baseline))
+        parser.add_argument(get_arg_name_from_enum(ArgDesc.v_test), type=str, required=True,
+                            help=get_arg_help_from_enum(ArgDesc.v_test))
+        parser.add_argument(get_arg_name_from_enum(ArgDesc.metric), type=str, default='IQR', choices={'std', 'IQR'},
+                            help=get_arg_help_from_enum(ArgDesc.metric))
+        parser.add_argument(get_arg_name_from_enum(ArgDesc.interval_range), type=float, default=1.5,
+                            help=get_arg_help_from_enum(ArgDesc.interval_range))
+        parser.add_argument(get_arg_name_from_enum(ArgDesc.size), type=int, default=400,
+                            help=get_arg_help_from_enum(ArgDesc.size))
+        parser.add_argument(get_arg_name_from_enum(ArgDesc.step), type=int, default=40,
+                            help=get_arg_help_from_enum(ArgDesc.step))
+        parser.add_argument(get_arg_name_from_enum(ArgDesc.cnv_like_range), type=float, default=0.7,
+                            help=get_arg_help_from_enum(ArgDesc.cnv_like_range))
+        parser.add_argument(get_arg_name_from_enum(ArgDesc.max_dist), type=int, default=15000000,
+                            help=get_arg_help_from_enum(ArgDesc.max_dist))
+        parser.add_argument(get_arg_name_from_enum(ArgDesc.outdir), type=str, default='results',
+                            help=get_arg_help_from_enum(ArgDesc.outdir))
         self.args = parse_sub_command(parser)
 
     def show_args(self):
