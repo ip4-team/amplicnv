@@ -69,43 +69,24 @@ class ArgDesc(Enum):
 
 class CNVFinderWrapper(object):
     def __init__(self):
+
+        commands = [command.lower() for command in dir(self) if not command.startswith('_')]
+        available_commands = ''
+        for command in commands:
+            available_commands += '''
+    {}
+    \t{}
+            '''.format(getattr(self, command.capitalize())().name,
+                       getattr(self, command.capitalize())().description)
         parser = create_parser('CNVfinder is a Python 3.x package for copy number (CNV) '
                                'variation detection on whole exome sequencing (WES) data from '
                                'amplicon-based enrichment technologies',
                                usage='''cnvfinder <command> [<args>]
 
 Available commands:
+  {}
 
-    {}
-    \t{}
-
-    {}
-    \t{}
-
-    {}
-    \t{}
-
-    {}
-    \t{}
-
-    {}
-    \t{}
-
-    {}
-    \t{}
-
-For getting help of a specific command use: cnvfinder <command> --help'''.format(self.Detect().name,
-                                                                                 self.Detect().description,
-                                                                                 self.Count().name,
-                                                                                 self.Count().description,
-                                                                                 self.Compare().name,
-                                                                                 self.Compare().description,
-                                                                                 self.Bafcompute().name,
-                                                                                 self.Bafcompute().description,
-                                                                                 self.Vcfcompare().name,
-                                                                                 self.Vcfcompare().description,
-                                                                                 self.Bedloader().name,
-                                                                                 self.Bedloader().description))
+For getting help of a specific command use: cnvfinder <command> --help'''.format(available_commands))
 
         parser.add_argument('command', help='Module to run')
         args = parser.parse_args(sys.argv[1:2])
@@ -114,7 +95,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
 
         getattr(self, args.command.capitalize())().run()
 
-    class Command(metaclass=ABCMeta):
+    class _Command(metaclass=ABCMeta):
         def __init__(self, name: str, description: str):
             self.name = name
             self.description = description
@@ -123,7 +104,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
         def run(self):
             pass
 
-    class Detect(Command):
+    class Detect(_Command):
         def __init__(self):
             super().__init__(self.__class__.__name__.lower(), 'Detect copy number variation in a test sample applying '
                                                               'read depth and variant data (optional)')
@@ -134,7 +115,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
 
             args = parse_sub_command(parser)
 
-    class Count(Command):
+    class Count(_Command):
         def __init__(self):
             super().__init__(self.__class__.__name__.lower(), 'Count the number of reads aligned to each target')
 
@@ -159,7 +140,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
                       parallel=args.parallel)
             nrr.save(args.output)
 
-    class Compare(Command):
+    class Compare(_Command):
         def __init__(self):
             super().__init__(self.__class__.__name__.lower(), 'Compare a test sample with a baseline of samples '
              
@@ -200,7 +181,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
                                 help=get_arg_help_from_enum(ArgDesc.outdir))
             args = parse_sub_command(parser)
 
-    class Bafcompute(Command):
+    class Bafcompute(_Command):
         def __init__(self):
             super().__init__(self.__class__.__name__.lower(), 'Compute B-allele frequency (BAF)')
 
@@ -213,7 +194,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
                                 help=get_arg_help_from_enum(ArgDesc.output))
             args = parse_sub_command(parser)
 
-    class Vcfcompare(Command):
+    class Vcfcompare(_Command):
         def __init__(self):
             super().__init__(self.__class__.__name__.lower(), 'Compare a test sample with a baseline of samples '
                                                               'considering B-allele frequency and other variant data')
@@ -241,7 +222,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
                                 help=get_arg_help_from_enum(ArgDesc.outdir))
             args = parse_sub_command(parser)
 
-    class Bedloader(Command):
+    class Bedloader(_Command):
         def __init__(self):
             super().__init__(self.__class__.__name__.lower(), 'Preprocess amplicons defined in a BED file')
 
