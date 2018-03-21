@@ -10,6 +10,7 @@ from abc import ABCMeta
 from abc import abstractmethod
 from enum import Enum
 
+from cnvfinder.bedloader import ROI, bedwrite
 from cnvfinder.nrrhandler import NRR
 
 
@@ -244,7 +245,14 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
                                 help=get_arg_help_from_enum(ArgDesc.min_data))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.max_pool), type=int, default=None,
                                 help=get_arg_help_from_enum(ArgDesc.max_pool))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.output), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.output))
             args = parse_sub_command(parser)
+
+            roi = ROI(args.target, region=args.region, spacing=args.spacing,
+                      mindata=args.min_data, maxpool=args.max_pool)
+
+            bedwrite(args.output, roi.targets)
 
 
 def main():
