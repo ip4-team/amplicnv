@@ -12,7 +12,7 @@ from enum import Enum
 
 from cnvfinder.bedloader import ROI, bedwrite
 from cnvfinder.nrrhandler import NRR, NRRList, NRRTest
-from cnvfinder.vcfhandler import VCF
+from cnvfinder.vcfhandler import VCF, VCFList, VCFTest
 
 
 def create_parser(description: str, command: str = 'command', usage: str = None) -> argparse.ArgumentParser:
@@ -52,7 +52,7 @@ class ArgDesc(Enum):
     b_test = {'test': 'Path to test sample bamfile'}
     v_baseline = {'baseline': 'Path to baseline sample vcf file. This parameter can be passed multiple times: '
                               '--baseline file1.vcf.gz --baseline file2.vcf.gz'}
-    v_test = 'Path to test sample vcf file'
+    v_test = {'test': 'Path to test sample vcf file'}
     size = 'Block size when sliding window'
     step = 'Step size when sliding window'
     metric = 'Define which metric should be used when comparing'
@@ -67,6 +67,7 @@ class ArgDesc(Enum):
     method = ''
     outdir = 'Output directory name'
     vcf = 'Path to variant file (VCF)'
+    to_filter = 'whether to apply filters on variants'
 
 
 class CNVFinderWrapper(object):
@@ -119,6 +120,8 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
         def run(self):
             parser = create_parser(self.description,
                                    command=self.name)
+
+            parser.add_argument()
 
             args = parse_sub_command(parser)
 
@@ -245,9 +248,32 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
                                 help=get_arg_help_from_enum(ArgDesc.cnv_like_range))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.max_dist), type=int, default=15000000,
                                 help=get_arg_help_from_enum(ArgDesc.max_dist))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.to_filter), dest=ArgDesc.to_filter.name,
+                                action='store_true', default=True, help=get_arg_help_from_enum(ArgDesc.to_filter))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.outdir), type=str, default='results',
                                 help=get_arg_help_from_enum(ArgDesc.outdir))
             args = parse_sub_command(parser)
+
+            sample = VCF(args.test)
+            baseline = VCFList(args.baseline)
+            vcftest = VCFTest(baseline, sample, metric=args.metric, interval_range=args.interval_range, size=args.size,
+                              step=args.step, cnv_like_range=args.cnv_like_range, maxdist=args.max_dist,
+                              path=args.outdir)
+
+            if args.to_filter:
+                vcftest.filter()
+                vcftest.load_filtered_out()
+                if vcftest.filtered_out_pos is None:
+                    vcftest.compare()
+                    vcftest.save_filtered_out()
+                vcftest.eliminate_vars()
+            vcftest.split()
+            print('Creating plots at {}'.format(vcftest.path2plot))
+            vcftest.vcfplot()
+            filename = '{}/vcftest.csv'.format(vcftest.path2table)
+            print('Writing table at {}'.format(filename))
+            vcftest.df.to_csv(filename, sep='\t', index=False)
+            print('Done!')
 
     class Bedloader(_Command):
         def __init__(self):
