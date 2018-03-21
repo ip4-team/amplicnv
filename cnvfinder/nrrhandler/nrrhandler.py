@@ -70,7 +70,7 @@ class NRR(object):
         """
         Parameters:
              bedfile (str): filename (BED) where the amplicons are listed in
-             bamfile (str): aligment file name (bam format)
+             bamfile (str): alignment file name (bam format)
 
              region (str): region limit for analysis (view). It must stick to
              the format: chrom:chromStart-chromEnd
@@ -332,7 +332,7 @@ class NRR(object):
         """
         Label targets considering IQR on counters
         (normalized or not - user's choice) for
-        discoverying whether a target is in
+        discovering whether a target is in
         the lower (-) quartile, upper (+) quartile, or middle (o)
 
         Parameters:
