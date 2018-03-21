@@ -12,6 +12,7 @@ from enum import Enum
 
 from cnvfinder.bedloader import ROI, bedwrite
 from cnvfinder.nrrhandler import NRR
+from cnvfinder.vcfhandler import VCF
 
 
 def create_parser(description: str, command: str = 'command', usage: str = None) -> argparse.ArgumentParser:
@@ -199,6 +200,10 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
             parser.add_argument(get_arg_name_from_enum(ArgDesc.output), type=str, required=True,
                                 help=get_arg_help_from_enum(ArgDesc.output))
             args = parse_sub_command(parser)
+
+            vcf = VCF(args.vcf)
+            df = vcf.variants.drop(columns=['info'])
+            bedwrite(args.output, df)
 
     class Vcfcompare(_Command):
         def __init__(self):
