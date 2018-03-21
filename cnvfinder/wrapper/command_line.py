@@ -80,7 +80,8 @@ class CNVFinderWrapper(object):
             '''.format(getattr(self, command.capitalize())().name,
                        getattr(self, command.capitalize())().description)
             except AttributeError:
-                pass
+                sys.exit('Class \"{}\" is not eligible for a command. Does it extend {} class?'.format(
+                    command, self._Command.__name__))
 
         parser = create_parser('CNVfinder is a Python 3.x package for copy number (CNV) '
                                'variation detection on whole exome sequencing (WES) data from '
@@ -147,7 +148,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
     class Compare(_Command):
         def __init__(self):
             super().__init__(self.__class__.__name__.lower(), 'Compare a test sample with a baseline of samples '
-             
+
                                                               'considering read depth')
 
         def run(self):
@@ -247,4 +248,4 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
 
 
 def main():
-    opts = CNVFinderWrapper()
+    CNVFinderWrapper()
