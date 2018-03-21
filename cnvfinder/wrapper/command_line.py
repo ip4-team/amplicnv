@@ -38,24 +38,41 @@ def get_arg_help_from_enum(arg: Enum):
     return arg.value
 
 
+def getattr_by(arg: Enum, args: argparse.Namespace):
+    name = arg.name
+    if type(arg.value) == dict:
+        name = list(arg.value.keys())[-1]
+    try:
+        return getattr(args, name.replace('-', '_'))
+    except AttributeError:
+        sys.exit('Cannot parse {}. This is likely a bug. Please, report it at: {}'.format(name,
+                                                                                          'https://github.com/ip4'
+                                                                                          '-team/cnvfinder/issues'))
+
+
 class ArgDesc(Enum):
+    # common arguments
     target = 'Path to file in which sequencing amplicons are listed'
     region = 'Limit target definition to a given region. It should be in the form: chr1:10000-90000'
+    outdir = 'Output directory name'
+    output = 'Output filename'
+
+    # bedloader arguments
     spacing = 'Number of nucleotides to ignore at amplicon start and end, to avoid overlapping reads'
     min_data = 'Minimum number of nucleotides for a valid target'
     max_pool = 'Maximum number of origin pools allowed for a valid target'
+
+    # count arguments
     bamfile = 'alignment filename (bam format)'
     parallel = 'Count target read depth in parallel'
-    output = 'Output filename'
-    b_baseline = {'baseline': 'Path to baseline sample bamfile. This parameter can be passed multiple times: '
-                              '--baseline file1.bam --baseline file2.bam'}
-    b_test = {'test': 'Path to test sample bamfile'}
-    v_baseline = {'baseline': 'Path to baseline sample vcf file. This parameter can be passed multiple times: '
-                              '--baseline file1.vcf.gz --baseline file2.vcf.gz'}
-    v_test = {'test': 'Path to test sample vcf file'}
+
+    # compare arguments
+    baseline = 'Path to baseline sample bamfile. This parameter can be passed multiple times: --baseline file1.bam ' \
+               '--baseline file2.bam '
+    test = 'Path to test sample bamfile'
     size = 'Block size when sliding window'
     step = 'Step size when sliding window'
-    metric = 'Define which metric should be used when comparing'
+    metric = 'Define which metric should be used when comparing ratios'
     interval_range = 'Value to multiply metric by'
     min_read = 'Minimum number of reads expected for valid targets'
     below_cutoff = 'Filter out data (ratios) below this cutoff'
@@ -65,8 +82,21 @@ class ArgDesc(Enum):
                      'calculations) '
     bins = 'Number of bins to use when plotting ratio data'
     method = ''
-    outdir = 'Output directory name'
+
+    # bafcompute arguments
     vcf = 'Path to variant file (VCF)'
+
+    # vcfcompare arguments
+    vcf_baseline = 'Path to baseline sample vcf file. This parameter can be passed multiple times: --vcf-baseline ' \
+                   'file1.vcf.gz --vcf-baseline file2.vcf.gz '
+    vcf_test = 'Path to test sample vcf file'
+    vcf_size = 'Block size when sliding window'
+    vcf_step = 'Step size when sliding window'
+    vcf_metric = 'Define which metric should be used when comparing ratios'
+    vcf_interval_range = 'Value to multiply metric by'
+    vcf_max_dist = 'Maximum distance allowed of a cnv-like block, to its closest cnv block, for it be a cnv as well'
+    vcf_cnv_like_range = 'Value to multiply interval_range by in order to detect cnv-like (CNVs when applying looser ' \
+                         'calculations) '
     to_filter = 'whether to apply filters on variants'
 
 
@@ -144,11 +174,11 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
                                 help=get_arg_help_from_enum(ArgDesc.output))
             args = parse_sub_command(parser)
 
-            nrr = NRR(bedfile=args.target,
-                      bamfile=args.bamfile,
-                      region=args.region,
-                      parallel=args.parallel)
-            nrr.save(args.output)
+            nrr = NRR(bedfile=getattr_by(ArgDesc.target, args),
+                      bamfile=getattr_by(ArgDesc.bamfile, args),
+                      region=getattr_by(ArgDesc.region, args),
+                      parallel=getattr_by(ArgDesc.parallel, args))
+            nrr.save(getattr_by(ArgDesc.output, args))
 
     class Compare(_Command):
         def __init__(self):
@@ -159,10 +189,10 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
         def run(self):
             parser = create_parser(self.description,
                                    command=self.name)
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.b_baseline), required=True, action='append', nargs='?',
-                                help=get_arg_help_from_enum(ArgDesc.b_baseline))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.b_test), type=str, required=True,
-                                help=get_arg_help_from_enum(ArgDesc.b_test))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.baseline), required=True, action='append', nargs='?',
+                                help=get_arg_help_from_enum(ArgDesc.baseline))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.test), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.test))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.target), type=str, required=True,
                                 help=get_arg_help_from_enum(ArgDesc.target))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.size), type=int, default=200,
@@ -191,13 +221,27 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
                                 help=get_arg_help_from_enum(ArgDesc.outdir))
             args = parse_sub_command(parser)
 
-            roi = ROI(args.target)
-            sample = NRR(bamfile=args.test, bed=roi)
-            baseline = NRRList(bamfiles=args.baseline, bed=roi)
-            nrrtest = NRRTest(baseline, sample, path=args.outdir, size=args.size, step=args.step, metric=args.metric,
-                              interval_range=args.interval_range, minread=args.min_read, below_cutoff=args.below_cutoff,
-                              above_cutoff=args.above_cutoff, maxdist=args.max_dist, cnv_like_range=args.cnv_like_range,
-                              bins=args.bins, method=args.method)
+            # load amplicons and define targets
+            roi = ROI(getattr_by(ArgDesc.target, args))
+            # load test sample and count number of reads in regions of targets
+            sample = NRR(bamfile=getattr_by(ArgDesc.test, args),
+                         bed=roi)
+            # load baseline samples and count their number of reads in region of targets
+            baseline = NRRList(bamfiles=getattr_by(ArgDesc.baseline, args), bed=roi)
+            # make test
+            nrrtest = NRRTest(baseline, sample,
+                              path=getattr_by(ArgDesc.outdir, args),
+                              size=getattr_by(ArgDesc.size, args),
+                              step=getattr_by(ArgDesc.step, args),
+                              metric=getattr_by(ArgDesc.metric, args),
+                              interval_range=getattr_by(ArgDesc.interval_range, args),
+                              minread=getattr_by(ArgDesc.min_read, args),
+                              below_cutoff=getattr_by(ArgDesc.below_cutoff, args),
+                              above_cutoff=getattr_by(ArgDesc.above_cutoff, args),
+                              maxdist=getattr_by(ArgDesc.max_dist, args),
+                              cnv_like_range=getattr_by(ArgDesc.cnv_like_range, args),
+                              bins=getattr_by(ArgDesc.bins, args),
+                              method=getattr_by(ArgDesc.method, args))
             nrrtest.makeratio()
             if nrrtest.ratios:
                 print('Creating plots at {}'.format(nrrtest.path2plot))
@@ -232,35 +276,40 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
         def run(self):
             parser = create_parser(self.description,
                                    self.name)
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.v_baseline), required=True, action='append', nargs='?',
-                                help=get_arg_help_from_enum(ArgDesc.v_baseline))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.v_test), type=str, required=True,
-                                help=get_arg_help_from_enum(ArgDesc.v_test))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.metric), type=str, default='IQR', choices={'std', 'IQR'},
-                                help=get_arg_help_from_enum(ArgDesc.metric))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.interval_range), type=float, default=1.5,
-                                help=get_arg_help_from_enum(ArgDesc.interval_range))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.size), type=int, default=400,
-                                help=get_arg_help_from_enum(ArgDesc.size))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.step), type=int, default=40,
-                                help=get_arg_help_from_enum(ArgDesc.step))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.cnv_like_range), type=float, default=0.7,
-                                help=get_arg_help_from_enum(ArgDesc.cnv_like_range))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.max_dist), type=int, default=15000000,
-                                help=get_arg_help_from_enum(ArgDesc.max_dist))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.vcf_baseline), required=True, action='append', nargs='?',
+                                help=get_arg_help_from_enum(ArgDesc.vcf_baseline))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.vcf_test), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.vcf_test))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.vcf_metric), type=str, default='IQR',
+                                choices={'std', 'IQR'}, help=get_arg_help_from_enum(ArgDesc.vcf_metric))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.vcf_interval_range), type=float, default=1.5,
+                                help=get_arg_help_from_enum(ArgDesc.vcf_interval_range))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.vcf_size), type=int, default=400,
+                                help=get_arg_help_from_enum(ArgDesc.vcf_size))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.vcf_step), type=int, default=40,
+                                help=get_arg_help_from_enum(ArgDesc.vcf_step))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.vcf_cnv_like_range), type=float, default=0.7,
+                                help=get_arg_help_from_enum(ArgDesc.vcf_cnv_like_range))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.vcf_max_dist), type=int, default=15000000,
+                                help=get_arg_help_from_enum(ArgDesc.vcf_max_dist))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.to_filter), dest=ArgDesc.to_filter.name,
                                 action='store_true', default=True, help=get_arg_help_from_enum(ArgDesc.to_filter))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.outdir), type=str, default='results',
                                 help=get_arg_help_from_enum(ArgDesc.outdir))
             args = parse_sub_command(parser)
 
-            sample = VCF(args.test)
-            baseline = VCFList(args.baseline)
-            vcftest = VCFTest(baseline, sample, metric=args.metric, interval_range=args.interval_range, size=args.size,
-                              step=args.step, cnv_like_range=args.cnv_like_range, maxdist=args.max_dist,
-                              path=args.outdir)
+            sample = VCF(getattr_by(ArgDesc.vcf_test, args))
+            baseline = VCFList(getattr_by(ArgDesc.vcf_baseline, args))
+            vcftest = VCFTest(baseline, sample,
+                              metric=getattr_by(ArgDesc.vcf_metric, args),
+                              interval_range=getattr_by(ArgDesc.vcf_interval_range, args),
+                              size=getattr_by(ArgDesc.vcf_size, args),
+                              step=getattr_by(ArgDesc.vcf_step, args),
+                              cnv_like_range=getattr_by(ArgDesc.vcf_cnv_like_range, args),
+                              maxdist=getattr_by(ArgDesc.vcf_max_dist, args),
+                              path=getattr_by(ArgDesc.outdir, args))
 
-            if args.to_filter:
+            if getattr_by(ArgDesc.to_filter, args):
                 vcftest.filter()
                 vcftest.load_filtered_out()
                 if vcftest.filtered_out_pos is None:
@@ -296,10 +345,13 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
                                 help=get_arg_help_from_enum(ArgDesc.output))
             args = parse_sub_command(parser)
 
-            roi = ROI(args.target, region=args.region, spacing=args.spacing,
-                      mindata=args.min_data, maxpool=args.max_pool)
+            roi = ROI(getattr_by(ArgDesc.target, args),
+                      region=getattr_by(ArgDesc.region, args),
+                      spacing=getattr_by(ArgDesc.spacing, args),
+                      mindata=getattr_by(ArgDesc.min_data, args),
+                      maxpool=getattr_by(ArgDesc.max_pool, args))
 
-            bedwrite(args.output, roi.targets)
+            bedwrite(getattr_by(ArgDesc.output, args), roi.targets)
 
 
 def main():
