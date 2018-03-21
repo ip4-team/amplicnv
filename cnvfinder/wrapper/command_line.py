@@ -11,7 +11,7 @@ from abc import abstractmethod
 from enum import Enum
 
 from cnvfinder.bedloader import ROI, bedwrite
-from cnvfinder.nrrhandler import NRR
+from cnvfinder.nrrhandler import NRR, NRRList, NRRTest
 from cnvfinder.vcfhandler import VCF
 
 
@@ -187,6 +187,22 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
             parser.add_argument(get_arg_name_from_enum(ArgDesc.outdir), type=str, default='results',
                                 help=get_arg_help_from_enum(ArgDesc.outdir))
             args = parse_sub_command(parser)
+
+            roi = ROI(args.target)
+            sample = NRR(bamfile=args.test, bed=roi)
+            baseline = NRRList(bamfiles=args.baseline, bed=roi)
+            nrrtest = NRRTest(baseline, sample, path=args.outdir, size=args.size, step=args.step, metric=args.metric,
+                              interval_range=args.interval_range, minread=args.min_read, below_cutoff=args.below_cutoff,
+                              above_cutoff=args.above_cutoff, maxdist=args.max_dist, cnv_like_range=args.cnv_like_range,
+                              bins=args.bins, method=args.method)
+            nrrtest.makeratio()
+            if nrrtest.ratios:
+                print('Creating plots at {}'.format(nrrtest.path2plot))
+                nrrtest.plot()
+                filename = '{}/nrrtest.csv'.format(nrrtest.path2table)
+                print('Writing table at {}'.format(filename))
+                nrrtest.df.to_csv(filename, sep='\t', index=False)
+                print('Done!')
 
     class Bafcompute(_Command):
         def __init__(self):
