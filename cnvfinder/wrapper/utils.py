@@ -19,7 +19,7 @@ def create_parser(description: str, command: str = Strings.command.value, usage:
 
 
 def parse_sub_command(parser: argparse.ArgumentParser) -> argparse.Namespace:
-    return parser.parse_args(sys.argv[2:])
+    return parser.parse_known_args(sys.argv[2:])
 
 
 def get_arg_name_from_enum(arg: Enum):
@@ -35,6 +35,9 @@ def get_arg_help_from_enum(arg: Enum):
 
 
 def getattr_by(arg: Enum, args: argparse.Namespace):
+    if type(args) == tuple:  # parse_known_args returns tuple
+        args = args[0]
+
     name = arg.name
     if type(arg.value) == dict:
         name = list(arg.value.keys())[-1]
