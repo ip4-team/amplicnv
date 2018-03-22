@@ -4,100 +4,16 @@
 @author: valengo
 """
 
-import argparse
 import sys
 from abc import ABCMeta
 from abc import abstractmethod
-from enum import Enum
 
 from cnvfinder.bedloader import ROI, bedwrite
 from cnvfinder.nrrhandler import NRR, NRRList, NRRTest
 from cnvfinder.vcfhandler import VCF, VCFList, VCFTest
-
-
-def create_parser(description: str, command: str = 'command', usage: str = None) -> argparse.ArgumentParser:
-    if usage is None:
-        usage = 'cnvfinder {} [<args>]'.format(command)
-    return argparse.ArgumentParser(description=description, usage=usage,
-                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-
-def parse_sub_command(parser: argparse.ArgumentParser) -> argparse.Namespace:
-    return parser.parse_args(sys.argv[2:])
-
-
-def get_arg_name_from_enum(arg: Enum):
-    if type(arg.value) == dict:
-        return '--' + list(arg.value.keys())[-1]
-    return '--' + arg.name.replace('_', '-')
-
-
-def get_arg_help_from_enum(arg: Enum):
-    if type(arg.value) == dict:
-        return list(arg.value.items())[-1][-1]
-    return arg.value
-
-
-def getattr_by(arg: Enum, args: argparse.Namespace):
-    name = arg.name
-    if type(arg.value) == dict:
-        name = list(arg.value.keys())[-1]
-    try:
-        return getattr(args, name.replace('-', '_'))
-    except AttributeError:
-        sys.exit('Cannot parse {}. This is likely a bug. Please, report it at: {}'.format(name,
-                                                                                          'https://github.com/ip4'
-                                                                                          '-team/cnvfinder/issues'))
-
-
-class ArgDesc(Enum):
-    # common arguments
-    target = 'Path to file in which sequencing amplicons are listed'
-    region = 'Limit target definition to a given region. It should be in the form: chr1:10000-90000'
-    outdir = 'Output directory name'
-    output = 'Output filename'
-
-    # bedloader arguments
-    spacing = 'Number of nucleotides to ignore at amplicon start and end, to avoid overlapping reads'
-    min_data = 'Minimum number of nucleotides for a valid target'
-    max_pool = 'Maximum number of origin pools allowed for a valid target'
-
-    # count arguments
-    bamfile = 'alignment filename (bam format)'
-    parallel = 'Count target read depth in parallel'
-
-    # compare arguments
-    baseline = 'Path to baseline sample bamfile. This parameter can be passed multiple times: --baseline file1.bam ' \
-               '--baseline file2.bam '
-    test = 'Path to test sample bamfile'
-    size = 'Block size when sliding window'
-    step = 'Step size when sliding window'
-    metric = 'Define which metric should be used when comparing ratios'
-    interval_range = 'Value to multiply metric by'
-    min_read = 'Minimum number of reads expected for valid targets'
-    below_cutoff = 'Filter out data (ratios) below this cutoff'
-    above_cutoff = 'Filter out data (ratios) above this cutoff'
-    max_dist = 'Maximum distance allowed of a cnv-like block, to its closest cnv block, for it be a cnv as well'
-    cnv_like_range = 'Value to multiply interval_range by in order to detect cnv-like (CNVs when applying looser ' \
-                     'calculations) '
-    bins = 'Number of bins to use when plotting ratio data'
-    method = ''
-
-    # bafcompute arguments
-    vcf = 'Path to variant file (VCF)'
-
-    # vcfcompare arguments
-    vcf_baseline = 'Path to baseline sample vcf file. This parameter can be passed multiple times: --vcf-baseline ' \
-                   'file1.vcf.gz --vcf-baseline file2.vcf.gz '
-    vcf_test = 'Path to test sample vcf file'
-    vcf_size = 'Block size when sliding window'
-    vcf_step = 'Step size when sliding window'
-    vcf_metric = 'Define which metric should be used when comparing ratios'
-    vcf_interval_range = 'Value to multiply metric by'
-    vcf_max_dist = 'Maximum distance allowed of a cnv-like block, to its closest cnv block, for it be a cnv as well'
-    vcf_cnv_like_range = 'Value to multiply interval_range by in order to detect cnv-like (CNVs when applying looser ' \
-                         'calculations) '
-    to_filter = 'whether to apply filters on variants'
+from cnvfinder.wrapper.argdesc import ArgDesc, Strings
+from cnvfinder.wrapper.utils import get_arg_name_from_enum, get_arg_help_from_enum, getattr_by, parse_sub_command, \
+    create_parser
 
 
 class CNVFinderWrapper(object):
@@ -113,23 +29,22 @@ class CNVFinderWrapper(object):
             '''.format(getattr(self, command.capitalize())().name,
                        getattr(self, command.capitalize())().description)
             except AttributeError:
-                sys.exit('Class \"{}\" is not eligible for a command. Does it extend {} class?'.format(
+                sys.exit(Strings.wrong_command.value.format(
                     command, self._Command.__name__))
 
-        parser = create_parser('CNVfinder is a Python 3.x package for copy number (CNV) '
-                               'variation detection on whole exome sequencing (WES) data from '
-                               'amplicon-based enrichment technologies',
-                               usage='''cnvfinder <command> [<args>]
+        parser = create_parser(Strings.description.value,
+                               usage='''{}
 
-Available commands:
+{}
   {}
 
-For getting help of a specific command use: cnvfinder <command> --help'''.format(available_commands))
+{}'''.format(Strings.usage.value.format(Strings.command.value), Strings.available_commands.value, available_commands,
+             Strings.getting_help.value))
 
-        parser.add_argument('command', help='Module to run')
+        parser.add_argument(Strings.command.value, help=Strings.command_help.value)
         args = parser.parse_args(sys.argv[1:2])
         if not hasattr(self, args.command.capitalize()):
-            sys.exit('Unrecognized {} command'.format(args.command))
+            sys.exit(Strings.unrecognized_command.value.format(args.command))
 
         getattr(self, args.command.capitalize())().run()
 
@@ -144,20 +59,18 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
 
     class Detect(_Command):
         def __init__(self):
-            super().__init__(self.__class__.__name__.lower(), 'Detect copy number variation in a test sample applying '
-                                                              'read depth and variant data (optional)')
+            super().__init__(self.__class__.__name__.lower(), Strings.detect_description.value)
 
         def run(self):
             parser = create_parser(self.description,
                                    command=self.name)
 
-            parser.add_argument()
 
             args = parse_sub_command(parser)
 
     class Count(_Command):
         def __init__(self):
-            super().__init__(self.__class__.__name__.lower(), 'Count the number of reads aligned to each target')
+            super().__init__(self.__class__.__name__.lower(), Strings.count_description.value)
 
         def run(self):
             parser = create_parser(self.description,
@@ -182,9 +95,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
 
     class Compare(_Command):
         def __init__(self):
-            super().__init__(self.__class__.__name__.lower(), 'Compare a test sample with a baseline of samples '
-
-                                                              'considering read depth')
+            super().__init__(self.__class__.__name__.lower(), Strings.compare_description.value)
 
         def run(self):
             parser = create_parser(self.description,
@@ -217,7 +128,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
                                 help=get_arg_help_from_enum(ArgDesc.bins))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.method), type=str,
                                 default='chr_group', choices={'chr_group'})
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.outdir), type=str, default='results',
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.outdir), type=str, default=Strings.default_outdir.value,
                                 help=get_arg_help_from_enum(ArgDesc.outdir))
             args = parse_sub_command(parser)
 
@@ -253,7 +164,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
 
     class Bafcompute(_Command):
         def __init__(self):
-            super().__init__(self.__class__.__name__.lower(), 'Compute B-allele frequency (BAF)')
+            super().__init__(self.__class__.__name__.lower(), Strings.bafcompute_description.value)
 
         def run(self):
             parser = create_parser(self.description,
@@ -270,8 +181,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
 
     class Vcfcompare(_Command):
         def __init__(self):
-            super().__init__(self.__class__.__name__.lower(), 'Compare a test sample with a baseline of samples '
-                                                              'considering B-allele frequency and other variant data')
+            super().__init__(self.__class__.__name__.lower(), Strings.vcfcompare_description.value)
 
         def run(self):
             parser = create_parser(self.description,
@@ -294,7 +204,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
                                 help=get_arg_help_from_enum(ArgDesc.vcf_max_dist))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.to_filter), dest=ArgDesc.to_filter.name,
                                 action='store_true', default=True, help=get_arg_help_from_enum(ArgDesc.to_filter))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.outdir), type=str, default='results',
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.outdir), type=str, default=Strings.default_outdir.value,
                                 help=get_arg_help_from_enum(ArgDesc.outdir))
             args = parse_sub_command(parser)
 
@@ -326,7 +236,7 @@ For getting help of a specific command use: cnvfinder <command> --help'''.format
 
     class Bedloader(_Command):
         def __init__(self):
-            super().__init__(self.__class__.__name__.lower(), 'Preprocess amplicons defined in a BED file')
+            super().__init__(self.__class__.__name__.lower(), Strings.bedloader_description.value)
 
         def run(self):
             parser = create_parser(self.description,
