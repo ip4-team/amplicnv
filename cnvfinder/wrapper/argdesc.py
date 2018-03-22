@@ -33,8 +33,6 @@ class Strings(Enum):
     bins = 'Number of bins to use when plotting ratio data'
     method = ''
     vcf = 'Path to variant file (VCF)'
-
-    # vcfcompare arguments
     vcf_baseline = 'Path to baseline sample vcf file. This parameter can be passed multiple times: --vcf-baseline ' \
                    'file1.vcf.gz --vcf-baseline file2.vcf.gz '
     vcf_test = 'Path to test sample vcf file'
@@ -43,7 +41,8 @@ class Strings(Enum):
     # errors
     wrong_command = 'Class \"{}\" is not eligible for a command. Does it extend {} class?'
     unrecognized_command = 'Unrecognized {} command'
-    parsing_error = 'Cannot parse {}. This is likely a bug. Please, report it at: {}'
+    parsing_error = 'Cannot parse \"{}\". This is likely a bug. Please, report it at: {}'
+    get_command_error = 'Cannot find {} \"command\". This is likely a bug. Please, report it at {}'
 
     # usage
     usage = 'cnvfinder {} [<args>]'
@@ -54,13 +53,16 @@ class Strings(Enum):
                   'sequencing (WES) data from amplicon-based enrichment technologies '
     getting_help = 'For getting help of a specific command use: cnvfinder <command> --help'
     available_commands = 'Available commands:'
-    detect_description = 'Detect copy number variation in a test sample applying read depth and variant data (optional)'
+    detect_description = 'Detect copy number variation in a test sample applying read depth and variant data'
     count_description = 'Count the number of reads aligned to each target'
     compare_description = 'Compare a test sample with a baseline of samples considering read depth'
     bafcompute_description = 'Compute B-allele frequency (BAF)'
     vcfcompare_description = 'Compare a test sample with a baseline of samples considering B-allele frequency and ' \
                              'other variant data'
-    bedloader_description = 'Preprocess amplicons defined in a BED file'
+    bedloader_description = 'Preprocess amplicons de' \
+                            'fined in a BED file'
+    no_rd = 'Do not apply read depth data'
+    no_vcf = 'Do not apply variant data'
 
     # defaults
     default_outdir = 'results'
@@ -110,3 +112,7 @@ class ArgDesc(Enum):
     vcf_max_dist = Strings.max_dist.value
     vcf_cnv_like_range = Strings.cnv_like_range.value
     to_filter = Strings.to_filter.value
+
+    # detect arguments
+    no_rd = Strings.no_rd.value
+    no_vcf = Strings.no_vcf.value

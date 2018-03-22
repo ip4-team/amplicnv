@@ -7,7 +7,9 @@
 import sys
 from abc import ABCMeta
 from abc import abstractmethod
+from collections import defaultdict
 
+from cnvfinder import CNVTest
 from cnvfinder.bedloader import ROI, bedwrite
 from cnvfinder.nrrhandler import NRR, NRRList, NRRTest
 from cnvfinder.vcfhandler import VCF, VCFList, VCFTest
@@ -19,15 +21,19 @@ from cnvfinder.wrapper.utils import get_arg_name_from_enum, get_arg_help_from_en
 class CNVFinderWrapper(object):
     def __init__(self):
 
-        commands = [command.lower() for command in dir(self) if not command.startswith('_')]
+        commands = [command.lower() for command in dir(self) if command[0].isupper()]
+        self.instances = defaultdict(lambda: None)
+
         available_commands = ''
         for command in commands:
             try:
+                # create instance of "command" classes
+                self.instances[command] = getattr(self, command.capitalize())(self)
                 available_commands += '''
     {}
     \t{}
-            '''.format(getattr(self, command.capitalize())().name,
-                       getattr(self, command.capitalize())().description)
+            '''.format(self.instances[command].name,
+                       self.instances[command].description)
             except AttributeError:
                 sys.exit(Strings.wrong_command.value.format(
                     command, self._Command.__name__))
@@ -46,31 +52,64 @@ class CNVFinderWrapper(object):
         if not hasattr(self, args.command.capitalize()):
             sys.exit(Strings.unrecognized_command.value.format(args.command))
 
-        getattr(self, args.command.capitalize())().run()
+        self.instances[args.command].run()
+
+    def get_instance_by_name(self, name: str):
+        ins = self.instances.get(name)
+        if ins is None:
+            sys.exit(Strings.get_command_error.value.format(name, Strings.issue_url.value))
+        return ins
 
     class _Command(metaclass=ABCMeta):
-        def __init__(self, name: str, description: str):
-            self.name = name
-            self.description = description
+        name = ''
+        description = ''
+
+        def __init__(self, name: str, description: str, outer_instance):
+            type(self).name = name
+            type(self).description = description
+            self.outer_instance = outer_instance
 
         @abstractmethod
         def run(self):
             pass
 
     class Detect(_Command):
-        def __init__(self):
-            super().__init__(self.__class__.__name__.lower(), Strings.detect_description.value)
+        def __init__(self, outer_instance):
+            super().__init__(self.__class__.__name__.lower(), Strings.detect_description.value, outer_instance)
 
         def run(self):
             parser = create_parser(self.description,
                                    command=self.name)
-
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.no_rd), dest=ArgDesc.no_rd.name,
+                                action='store_true', default=False, help=get_arg_help_from_enum(ArgDesc.no_rd))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.no_vcf), dest=ArgDesc.no_vcf.name,
+                                action='store_true', default=False, help=get_arg_help_from_enum(ArgDesc.no_vcf))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.outdir), type=str, default=Strings.default_outdir.value,
+                                help=get_arg_help_from_enum(ArgDesc.outdir))
 
             args = parse_sub_command(parser)
+            ratio = not getattr_by(ArgDesc.no_rd, args)
+            variant = not getattr_by(ArgDesc.no_vcf, args)
+
+            nrrtest = self.outer_instance.get_instance_by_name('compare').run() if ratio else None
+            vcftest = self.outer_instance.get_instance_by_name('vcfcompare').run() if ratio else None
+
+            cnvtest = CNVTest(nrrtest, vcftest,
+                              path=getattr_by(ArgDesc.outdir, args))
+            cnvtest.analyze_plot()
+            rfname = '{}/cnvfrombam.csv'.format(cnvtest.path2table)
+            vfname = '{}/cnvfromvcf.csv'.format(cnvtest.path2table)
+            if ratio:
+                cnvtest.blocks[0].to_csv(rfname, sep='\t', index=False)
+            if variant:
+                cnvtest.blocks[-1].to_csv(vfname, sep='\t', index=False)
+            cnvtest.save()
+            cnvtest.summary()
+            print('Done!')
 
     class Count(_Command):
-        def __init__(self):
-            super().__init__(self.__class__.__name__.lower(), Strings.count_description.value)
+        def __init__(self, outer_instance):
+            super().__init__(self.__class__.__name__.lower(), Strings.count_description.value, outer_instance)
 
         def run(self):
             parser = create_parser(self.description,
@@ -94,10 +133,10 @@ class CNVFinderWrapper(object):
             nrr.save(getattr_by(ArgDesc.output, args))
 
     class Compare(_Command):
-        def __init__(self):
-            super().__init__(self.__class__.__name__.lower(), Strings.compare_description.value)
+        def __init__(self, outer_instance):
+            super().__init__(self.__class__.__name__.lower(), Strings.compare_description.value, outer_instance)
 
-        def run(self):
+        def run(self) -> NRRTest:
             parser = create_parser(self.description,
                                    command=self.name)
             parser.add_argument(get_arg_name_from_enum(ArgDesc.baseline), required=True, action='append', nargs='?',
@@ -162,9 +201,11 @@ class CNVFinderWrapper(object):
                 nrrtest.df.to_csv(filename, sep='\t', index=False)
                 print('Done!')
 
+            return nrrtest
+
     class Bafcompute(_Command):
-        def __init__(self):
-            super().__init__(self.__class__.__name__.lower(), Strings.bafcompute_description.value)
+        def __init__(self, outer_instance):
+            super().__init__(self.__class__.__name__.lower(), Strings.bafcompute_description.value, outer_instance)
 
         def run(self):
             parser = create_parser(self.description,
@@ -180,10 +221,10 @@ class CNVFinderWrapper(object):
             bedwrite(args.output, df)
 
     class Vcfcompare(_Command):
-        def __init__(self):
-            super().__init__(self.__class__.__name__.lower(), Strings.vcfcompare_description.value)
+        def __init__(self, outer_instance):
+            super().__init__(self.__class__.__name__.lower(), Strings.vcfcompare_description.value, outer_instance)
 
-        def run(self):
+        def run(self) -> VCFTest:
             parser = create_parser(self.description,
                                    self.name)
             parser.add_argument(get_arg_name_from_enum(ArgDesc.vcf_baseline), required=True, action='append', nargs='?',
@@ -234,9 +275,11 @@ class CNVFinderWrapper(object):
             vcftest.df.to_csv(filename, sep='\t', index=False)
             print('Done!')
 
+            return vcftest
+
     class Bedloader(_Command):
-        def __init__(self):
-            super().__init__(self.__class__.__name__.lower(), Strings.bedloader_description.value)
+        def __init__(self, outer_instance):
+            super().__init__(self.__class__.__name__.lower(), Strings.bedloader_description.value, outer_instance)
 
         def run(self):
             parser = create_parser(self.description,
