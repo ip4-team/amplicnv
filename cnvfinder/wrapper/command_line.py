@@ -22,6 +22,9 @@ from cnvfinder.wrapper.utils import get_arg_name_from_enum, get_arg_help_from_en
 class CNVFinderWrapper(object):
     def __init__(self):
 
+        self.__nrr_comparator = None
+        self.__vcf_comparator = None
+
         commands = [command.lower() for command in dir(self) if command[0].isupper()]
         self.instances = defaultdict(lambda: None)
 
@@ -61,6 +64,22 @@ class CNVFinderWrapper(object):
             sys.exit(Strings.get_command_error.value.format(name, Strings.issue_url.value))
         return ins
 
+    @property
+    def nrr_comparator(self):
+        return self.__nrr_comparator
+
+    @nrr_comparator.setter
+    def nrr_comparator(self, value):
+        self.__nrr_comparator = value
+
+    @property
+    def vcf_comparator(self):
+        return self.__vcf_comparator
+
+    @vcf_comparator.setter
+    def vcf_comparator(self, value):
+        self.__vcf_comparator = value
+
     class _Command(metaclass=ABCMeta):
         name = ''
         description = ''
@@ -92,8 +111,10 @@ class CNVFinderWrapper(object):
             ratio = not getattr_by(ArgDesc.no_rd, args)
             variant = not getattr_by(ArgDesc.no_vcf, args)
 
-            nrrtest = self.outer_instance.get_instance_by_name('compare').run() if ratio else None
-            vcftest = self.outer_instance.get_instance_by_name('vcfcompare').run() if ratio else None
+            nrrtest = self.outer_instance.get_instance_by_name(
+                self.outer_instance.nrr_comparator).run() if ratio else None
+            vcftest = self.outer_instance.get_instance_by_name(
+                self.outer_instance.vcf_comparator).run() if ratio else None
 
             cnvtest = CNVTest(nrrtest, vcftest,
                               path=getattr_by(ArgDesc.outdir, args))
@@ -135,7 +156,9 @@ class CNVFinderWrapper(object):
 
     class Compare(_Command):
         def __init__(self, outer_instance):
-            super().__init__(self.__class__.__name__.lower(), Strings.compare_description.value, outer_instance)
+            name = self.__class__.__name__.lower()
+            super().__init__(name, Strings.compare_description.value, outer_instance)
+            self.outer_instance.nrr_comparator = name
 
         def run(self) -> NRRTest:
             parser = create_parser(self.description,
@@ -223,7 +246,9 @@ class CNVFinderWrapper(object):
 
     class Vcfcompare(_Command):
         def __init__(self, outer_instance):
-            super().__init__(self.__class__.__name__.lower(), Strings.vcfcompare_description.value, outer_instance)
+            name = self.__class__.__name__.lower()
+            super().__init__(name, Strings.vcfcompare_description.value, outer_instance)
+            self.outer_instance.vcf_comparator = name
 
         def run(self) -> VCFTest:
             parser = create_parser(self.description,
