@@ -4,7 +4,7 @@
 
 @author: valengo
 """
-
+import contextlib
 from collections import defaultdict
 import configparser
 import os
@@ -193,7 +193,7 @@ class ConfigfileParser(object):
         """
         Parameters:
              filename (str): filename
-             params (dict): dictionary discribing whether params
+             params (dict): dictionary describing whether params
              are mandatory. For example:
                   self.sections_params = {
                       'baseline': 'm',
@@ -236,8 +236,8 @@ class ConfigfileParser(object):
                 if len(optdict[opt]) == 1:
                     optdict[opt] = optdict[opt][0]
             except:
-                print('Error getting {0} '.format(opt) +
-                      'option from section [{1}]'.format(section))
+                print('Error getting {} '.format(opt) +
+                      'option from section [{}]'.format(section))
                 optdict[opt] = None
         return optdict
 
@@ -367,3 +367,20 @@ def appenddir(path, dirname):
         return '{}{}'.format(path, dirname)
     else:
         return '{}/{}'.format(path, dirname)
+
+
+def bedwrite(filename, df, index=False, header=True, sep='\t'):
+    """
+    Write df as bedfile
+    :param filename: where to write
+    :param df: what to write
+    :param index: whether to write row index
+    :param header: whether to write column names
+    :param sep: column separator
+    :return: None
+    """
+    print('Writing targets to file: "{0}"'.format(filename))
+    with contextlib.suppress(FileNotFoundError):
+        os.remove(filename)
+        os.remove(filename + '.idx')
+    df.to_csv(filename, sep=sep, index=index, header=header)
