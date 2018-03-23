@@ -9,11 +9,11 @@ from abc import ABCMeta
 from abc import abstractmethod
 from collections import defaultdict
 
-from cnvfinder import CNVTest
+from cnvfinder import CNVTest, CNVConfig
 from cnvfinder.bedloader import ROI
-from cnvfinder.nrrhandler import NRR, NRRList, NRRTest
+from cnvfinder.nrrhandler import NRR, NRRList, NRRTest, NRRConfig
 from cnvfinder.utils.utils import bedwrite
-from cnvfinder.vcfhandler import VCF, VCFList, VCFTest
+from cnvfinder.vcfhandler import VCF, VCFList, VCFTest, VCFConfig
 from cnvfinder.wrapper.argdesc import ArgDesc, Strings
 from cnvfinder.wrapper.utils import get_arg_name_from_enum, get_arg_help_from_enum, getattr_by, parse_sub_command, \
     create_parser
@@ -331,6 +331,45 @@ class CNVFinderWrapper(object):
                       maxpool=getattr_by(ArgDesc.max_pool, args))
 
             bedwrite(getattr_by(ArgDesc.output, args), roi.targets, header=False)
+
+    class Comparecfg(_Command):
+        def __init__(self, outer_instance):
+            super().__init__(self.__class__.__name__.lower(), Strings.compare_description.value + Strings.cfg.value,
+                             outer_instance)
+
+        def run(self):
+            parser = create_parser(self.description, command=self.name)
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.cfg_file), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.cfg_file))
+            args = parse_sub_command(parser)
+
+            NRRConfig(getattr_by(ArgDesc.cfg_file, args))
+
+    class Vcfcomparecfg(_Command):
+        def __init__(self, outer_instance):
+            super().__init__(self.__class__.__name__.lower(), Strings.vcfcompare_description.value + Strings.cfg.value,
+                             outer_instance)
+
+        def run(self):
+            parser = create_parser(self.description, command=self.name)
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.cfg_file), type=str, required=True,
+                                help=get_arg_name_from_enum(ArgDesc.cfg_file))
+            args = parse_sub_command(parser)
+
+            VCFConfig(getattr_by(ArgDesc.cfg_file, args))
+
+    class Detectcfg(_Command):
+        def __init__(self, outer_instance):
+            super().__init__(self.__class__.__name__.lower(), Strings.detect_description.value + Strings.cfg.value,
+                             outer_instance)
+
+        def run(self):
+            parser = create_parser(self.description, command=self.name)
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.cfg_file), type=str, required=True,
+                                help=get_arg_name_from_enum(ArgDesc.cfg_file))
+            args = parse_sub_command(parser)
+
+            CNVConfig(getattr_by(ArgDesc.cfg_file, args))
 
 
 def main():
