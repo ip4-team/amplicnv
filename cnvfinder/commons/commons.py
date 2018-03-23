@@ -18,16 +18,17 @@ from ..graphics import y_scatter
 
 
 class ChromDF(metaclass=ABCMeta):
-    '''
+    """
     This class manages a pandas DataFrame that must have its three
     first columns named as:
     "chrom", "chromStart", and "chromEnd"
-    '''
+    """
+
     def __init__(self, df):
-        '''
+        """
         Parameters:
             df (pandas.DataFrame): the dataframe itself
-        '''
+        """
         self.df = df
 
     # properties
@@ -83,13 +84,13 @@ class ChromDF(metaclass=ABCMeta):
 
     @df.setter
     def df(self, value):
-        '''
+        """
         Assure that df stick to the rules regarding
         columns len and names.
 
         Parameters:
             value (pandas.DataFrame): a pandas DataFrame
-        '''
+        """
         if value is not None:
             columns = value.columns
             if len(columns) < len(self.mlabels):
@@ -103,20 +104,20 @@ class ChromDF(metaclass=ABCMeta):
         self._df = value
 
     def iterchroms(self, df=None):
-        '''
+        """
         Create a list to iterate through self.df
         based on its 'chrom' column values
 
         Parameters:
             df (pandas.DataFrame): a pandas DataFrame
-        '''
+        """
         if df is None:
             return self.creategroups(self.df)
         else:
             return self.creategroups(df)
 
     def iterblocks(self, group, size=400, step=10):
-        '''
+        """
         Given a group (of variants), this method creates
         blocks from it by creating (sliding) windows of a
         given size at a given step
@@ -125,11 +126,11 @@ class ChromDF(metaclass=ABCMeta):
             group (pandas.DataFrame): a pandas DataFrame
             size (int): block size
             step (int): distance between two consecutive blocks
-        '''
+        """
         return self.__createblocks(group, size, step)
 
     def getrows(self, df, region):
-        '''
+        """
         Get df rows in region
 
         Parameters:
@@ -139,7 +140,7 @@ class ChromDF(metaclass=ABCMeta):
 
         Returns:
             rows (pandas.Dataframe)
-        '''
+        """
         ras_tuple = Region(region).as_tuple
         if ras_tuple:
             if len(ras_tuple) >= 3:
@@ -155,7 +156,7 @@ class ChromDF(metaclass=ABCMeta):
         return df
 
     def getin(self, region=None, column=None):
-        '''
+        """
         Get self.df values in region and/or column
 
         Paramters:
@@ -167,7 +168,7 @@ class ChromDF(metaclass=ABCMeta):
             rows (pandas.DataFrame): in case column is None
             list(rows) (list): in case column is not None
 
-        '''
+        """
         rows = self.getrows(self.df, region)
         if rows is not None and column:
             return list(rows.loc[:, column])
@@ -175,33 +176,33 @@ class ChromDF(metaclass=ABCMeta):
             return rows
 
     def medfilter(self, column, kernel_size=9):
-        '''
+        """
         Apply median filter on self.df column
 
         Parameters:
             column (str): column name (where to apply median filter)
             kernel_size (int): kernel size for median filter.
-        '''
+        """
         med_ratios = []
         for group in self.iterchroms():
             med_ratios.extend(medfilt(list(group['df'].loc[:, column]),
-                              kernel_size=kernel_size))
+                                      kernel_size=kernel_size))
         self.ratios = med_ratios
         self.df.loc[:, column] = med_ratios
 
     def get_autossomic(self):
-        '''
+        """
         Filter self.df by chromosomes, so rows where df.chrom == chrX or
         df.chrom == chrY are filtered out.
 
         Returns:
             df (pandas.DataFrame) that contains data of autossomic chromosomes
-        '''
+        """
         return self.df[(self.df.chrom != 'chrX') &
                        (self.df.chrom != 'chrY')]
 
     def createid(self, block):
-        '''
+        """
         Create block id for a given block. The id is based on the block
         region (where it starts and ends)
 
@@ -211,7 +212,7 @@ class ChromDF(metaclass=ABCMeta):
         Returns:
             id (str): a block id in the format: chrom:chromStart-chromEnd
             None: in case block id creation fails
-        '''
+        """
         try:
             head = block.head(1)
             tail = block.tail(1)
@@ -228,7 +229,7 @@ class ChromDF(metaclass=ABCMeta):
         return None
 
     def creategroups(self, df):
-        '''
+        """
         create a list to iterate through self.df
         based on its 'chrom' column values. In other words, each group
         will contain data of a unique chromosome.
@@ -239,7 +240,7 @@ class ChromDF(metaclass=ABCMeta):
         Returns:
             groups (defaultdict): a dictionary whose keys are regions
             (ids) created by self.createid and items are pandas.DataFrame obj
-        '''
+        """
         unique_chroms = df.chrom.unique()
         groups = []
         for i, chrom in enumerate(unique_chroms):
@@ -250,26 +251,26 @@ class ChromDF(metaclass=ABCMeta):
         return groups
 
     def compute(self):
-        '''
+        """
         compute stats on self.df data. What is computed depends on the class
         that implements self._compute()
-        '''
+        """
         return self._compute()
 
     def compute_analyze(self):
-        '''
+        """
         detect stats on self.df data and analyze them. What is computed
         depends on the class that implements: self._compute()
 
-        '''
+        """
         return self._unify_blocks(self._analyze_blocks(self._compute(),
                                                        self.maxdist))
 
     def compute_plot(self, mode='filtered',
                      filename='cnv-subplot.html'):
-        '''
+        """
         detect and plot CNVs
-        '''
+        """
         df = self._compute()
         if mode == 'analyzed':
             cnvs = self._unify_blocks(self._analyze_blocks(df, self.maxdist),
@@ -278,8 +279,8 @@ class ChromDF(metaclass=ABCMeta):
         else:
             cnvs, potential_cnvs = self._filter_blocks(df, todf=True)
             traces, titles, layout = self._make_subplots(self._unify_blocks(cnvs, todf=True),
-                                       cnvlike=self._unify_blocks(potential_cnvs,
-                                               todf=True))
+                                                         cnvlike=self._unify_blocks(potential_cnvs,
+                                                                                    todf=True))
         fig = create_subplots([traces], titles,
                               layouts=[layout],
                               height=5000)
@@ -292,7 +293,7 @@ class ChromDF(metaclass=ABCMeta):
             return df, traces, titles, layout
 
     def _unify_blocks(self, blocks, todf=False):
-        '''
+        """
         Unify blocks that have overlaps (in regions/id)
 
         Parameters:
@@ -301,7 +302,7 @@ class ChromDF(metaclass=ABCMeta):
 
         Returns:
              unified_blocks (pandas.DataFrame or list)
-        '''
+        """
         unified_blocks = []
         for group in self.iterchroms(df=blocks):
             print('Unifying blocks of {}'.format(group['id']))
@@ -329,7 +330,7 @@ class ChromDF(metaclass=ABCMeta):
             return unified_blocks
 
     def _analyze_blocks(self, blocks, maxdist):
-        '''
+        """
         Analyze blocks in order to define which CNV-like blocks
         are actual CNVs
 
@@ -342,7 +343,7 @@ class ChromDF(metaclass=ABCMeta):
         Returns:
              cnv_blocks (pandas.DataFrame): cnv + cnv-like that were detected
              as cnvs
-        '''
+        """
         cnvs, potential_cnvs = self._filter_blocks(blocks, todf=True)
         cnv_blocks = []
 
@@ -359,7 +360,7 @@ class ChromDF(metaclass=ABCMeta):
         return DataFrame(cnv_blocks, columns=blocks.columns[0:3])
 
     def _filter_blocks(self, blocks, todf=False):
-        '''
+        """
         Split blocks dataframe in two dataframes or list: one for CNV blocks
         (1 * interval_range) and another for potential CNV blocks
         (interval_range * self.cnv_like_range)
@@ -372,14 +373,14 @@ class ChromDF(metaclass=ABCMeta):
 
         Returns:
              cnvs, potential_cnvs (pandas.DataFrame or list)
-        '''
+        """
         cnvs = self._unify_blocks(blocks[blocks.isoutlier_1st], todf=todf)
         potential_cnvs = self._unify_blocks(blocks[(blocks.isoutlier_1st == False) &
                                                    (blocks.isoutlier_2nd)], todf=todf)
         return cnvs, potential_cnvs
 
     def __createblocks(self, group, size, step):
-        '''
+        """
         Given a group (pandas.DataFrame by chromosome), this method
         creates blocks (sliding windows) of it
 
@@ -390,21 +391,21 @@ class ChromDF(metaclass=ABCMeta):
 
         Returns:
              blocks (defaultdict):
-        '''
+        """
         if size > len(group['df']):
             size = len(group['df'])
 
         blocks = []
-        for i in range(0, len(group['df'])-size+step, step):
+        for i in range(0, len(group['df']) - size + step, step):
             block = defaultdict(lambda: None)
-            block['df'] = group['df'].iloc[i:i+size, :]
+            block['df'] = group['df'].iloc[i:i + size, :]
             block['id'] = self.createid(block['df'])
             blocks.append(block)
         return blocks
 
     def _create_traces(self, cnv, value_column, pos_column, cnvlike=None,
                        plotting=False, layout=None):
-        '''
+        """
         Create traces with for making subplots
 
         Parameters:
@@ -416,7 +417,7 @@ class ChromDF(metaclass=ABCMeta):
         Returns:
              traces (list): list of traces
              titles (list): list of titles
-        '''
+        """
 
         traces = []
         titles = []
@@ -452,7 +453,7 @@ class ChromDF(metaclass=ABCMeta):
                 y_scatter(cnv_values[0], x=cnv_pos[0], toplot=False,
                           size=3, name='CNVs',
                           color='rgb(153, 0, 0)')
-                ])
+            ])
             chrom_trace = [
                 y_scatter(values, x=values_pos, toplot=False, size=3,
                           color='rgb(153, 204, 255)'),
@@ -461,7 +462,7 @@ class ChromDF(metaclass=ABCMeta):
                 y_scatter(cnv_values[0], x=cnv_pos[0], toplot=False,
                           size=3, name='CNVs',
                           color='rgb(153, 0, 0)')
-                ]
+            ]
             chrom_title = 'Chromosome {}'.format(chrom.split('chr')[-1])
             filename = '{}/{}-{}-analyzed.html'.format(self.path2plotcnv,
                                                        group['id'].split(':')[0],

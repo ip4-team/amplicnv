@@ -7,24 +7,22 @@ Created on Mon Oct 10 19:35:14 2016
 """
 
 import pandas
-import os
-import contextlib
 from ..utils import Region
 
 
 # Helper functions
 def ntuple(string):
-    '''
+    """
     Return a tuple of integers from a string of comma-separated integers.
     Defaults to string(s) if this fails.
-    '''
+    """
     return tuple([maybeint(number) for number in string.strip().split(',')])
 
 
 def maybeint(string):
-    '''
+    """
     Try to cast a string to int. Return a string if this fails.
-    '''
+    """
 
     try:
         return int(string)
@@ -32,25 +30,17 @@ def maybeint(string):
         return string
 
 
-def bedwrite(filename, df):
-    print('Writing targets to file: "{0}"'.format(filename))
-    with contextlib.suppress(FileNotFoundError):
-        os.remove(filename)
-        os.remove(filename + '.idx')
-    df.to_csv(filename, sep='\t', index=False, header=False)
-
-
 # Main classes
 class ROI(object):
-    '''
+    """
     This class stores "regions of interest" in the .bed file.
     self.amplicons is a list of Amplicon objects.
     self.targets is a pandas.DataFrame of valid targets for CNV analysis.
-    '''
+    """
 
     def __init__(self, bedfile, region=None, spacing=20,
                  mindata=50, maxpool=None):
-        '''
+        """
         Load amplicons and targets for CNV analysis.
         "bedfile" is the path to the .bed file.
         "region" should be in the form: chr:start-end, for example:
@@ -58,7 +48,7 @@ class ROI(object):
         "spacing" is the number of nucleotides to ignore at amplicon start and
             end, to avoid overlapping reads.
         "mindata" is the minimum number of nucleotides for a valid target.
-        '''
+        """
 
         # spacing should be >= 0
         if not type(spacing) == int or spacing < 0:
@@ -96,12 +86,12 @@ class ROI(object):
 
     def __repr__(self):
         return 'ROI("{0}"; {1} amplicons, {2} targets)'.format(
-                self.source, len(self.amplicons), len(self.targets))
+            self.source, len(self.amplicons), len(self.targets))
 
     def load_amplicons(self, lines, region, maxpool):
-        '''
+        """
         Return a sorted list of amplicons.
-        '''
+        """
         print("Loading amplicons...")
         amplicons = []
         total = 0
@@ -133,11 +123,11 @@ class ROI(object):
         return amplicons
 
     def define_targets(self, spacing, mindata):
-        '''
+        """
         Return a pandas DataFrame array of valid targets for CNV analysis.
         Each target is in the form:
             (chromosome, start, end, Amplicon)
-        '''
+        """
         print('Defining targets...')
         targets = []
         this_chrom = ''
@@ -160,19 +150,19 @@ class ROI(object):
             this_end = amplicon.chromEnd - spacing
 
             # Avoid regions of overlap with the next amplicon, if applicable
-            if i < (ampsize-1) and self.amplicons[i+1].chrom == amplicon.chrom:
+            if i < (ampsize - 1) and self.amplicons[i + 1].chrom == amplicon.chrom:
                 this_end = min(this_end,
-                               self.amplicons[i+1].chromStart - spacing)
+                               self.amplicons[i + 1].chromStart - spacing)
 
             # Valid amplicons must be at least `mindata` nt long:
             if this_end - this_start >= mindata:
                 targets.append((
-                                this_chrom,
-                                this_start,
-                                this_end,
-                                amplicon.genename,
-                                amplicon
-                                ))
+                    this_chrom,
+                    this_start,
+                    this_end,
+                    amplicon.genename,
+                    amplicon
+                ))
 
             last_chromEnd = amplicon.chromEnd
 
@@ -181,9 +171,9 @@ class ROI(object):
 
 
 class Amplicon(object):
-    '''
+    """
     Hold data for each amplicon listed in the BED file
-    '''
+    """
 
     # column names from: https://genome.ucsc.edu/FAQ/FAQformat.html#format1
     fields = [('chrom', str),
@@ -202,9 +192,9 @@ class Amplicon(object):
     fieldnames = {field[0] for field in fields}
 
     def __new__(cls, beddata, pool_loc, region=None, maxpool=None):
-        '''
+        """
         Verify the need to create an Amplicon object.
-        '''
+        """
         location = [beddata[0], int(beddata[1]), int(beddata[2])]
         pools = [int(n) for n in beddata[pool_loc].split('Pool=')[1].split(',')]
 
@@ -233,10 +223,10 @@ class Amplicon(object):
         return object.__new__(cls)
 
     def __init__(self, beddata, pool_loc, region=None, maxpool=None):
-        '''
+        """
         `bedline` is the line in the .bed file corresponding to the amplicon
         `region` is a region constraint (if any)
-        '''
+        """
         # Load attribute data
         for i in range(len(beddata)):
             setattr(self, self.fields[i][0], self.fields[i][1](beddata[i]))
@@ -249,9 +239,9 @@ class Amplicon(object):
             self.chromosome = chromosome
 
     def __getattr__(self, attribute):
-        '''
+        """
         Override getattr() to handle unset valid fields
-        '''
+        """
         if attribute in self.fieldnames:
             return None
         else:
@@ -262,11 +252,3 @@ class Amplicon(object):
                                                   self.chrom,
                                                   self.chromStart,
                                                   self.chromEnd)
-
-if __name__ == '__main__':
-    test = ROI('AmpliSeqExome.20131001.designed.bed',
-               region=None,
-               spacing=20,
-               mindata=50)
-    bedwrite('test.bed', test.targets)
-    print("Done.")
