@@ -4,11 +4,10 @@
 
 @author: valengo
 """
-
+from cnvfinder.utils.utils import bedwrite
 from ..utils import ConfigfileParser
 from ..nrrhandler import NRRConfig
 from ..vcfhandler import VCFConfig
-from ..bedloader import bedwrite
 from plotly.offline import plot
 from pandas import DataFrame
 from ..utils import validstr
@@ -25,7 +24,7 @@ class CNVTest(object):
             nrrtest (NRRTest): a nrrtest object. When it's None, analysis
             employing "read depth" won't be performed.
 
-            vfctest (VCFTest): a vcftest object. When it's None, analysis
+            vcftest (VCFTest): a vcftest object. When it's None, analysis
             employing "B allele frequency" won't be performed.
 
             path: path to save analysis results
@@ -108,7 +107,7 @@ class CNVTest(object):
             filename = '{}/{}{}'.format(self.path2bed,
                                         self.nrrtest.sample.bamfile.split('/')[-1],
                                         '.bed')
-            bedwrite(filename, self.cnvdf)
+            bedwrite(filename, self.cnvdf, header=False)
         except AttributeError:
             if self.nrrtest is not None:
                 print('There is no CNV yet!')

@@ -16,7 +16,7 @@ class Strings(Enum):
     min_data = 'Minimum number of nucleotides for a valid target'
     max_pool = 'Maximum number of origin pools allowed for a valid target'
     bamfile = 'alignment filename (bam format)'
-    parallel = 'Count target read depth in parallel'
+    no_parallel = 'Disable counting target read depth in parallel'
     baseline = 'Path to baseline sample bamfile. This parameter can be passed multiple times: --baseline file1.bam ' \
                '--baseline file2.bam '
     test = 'Path to test sample bamfile'
@@ -59,13 +59,12 @@ class Strings(Enum):
     bafcompute_description = 'Compute B-allele frequency (BAF)'
     vcfcompare_description = 'Compare a test sample with a baseline of samples considering B-allele frequency and ' \
                              'other variant data'
-    bedloader_description = 'Preprocess amplicons de' \
-                            'fined in a BED file'
+    bedloader_description = 'Define targets from amplicons located in a BED file'
     no_rd = 'Do not apply read depth data'
     no_vcf = 'Do not apply variant data'
 
     # defaults
-    default_outdir = 'results'
+    default_outdir = 'cnvfinder_results'
 
 
 class ArgDesc(Enum):
@@ -82,7 +81,7 @@ class ArgDesc(Enum):
 
     # count arguments
     bamfile = Strings.bamfile.value
-    parallel = Strings.parallel.value
+    no_parallel = Strings.no_parallel.value
 
     # compare arguments
     baseline = Strings.baseline.value

@@ -66,7 +66,7 @@ class NRR(object):
     """
 
     def __init__(self, bedfile=None, bamfile=None, region=None,
-                 counters=[], bed=None, parallel=True):
+                 counters=[], bed=None, parallel=True, to_label=False):
         """
         Parameters:
              bedfile (str): filename (BED) where the amplicons are listed in
@@ -95,7 +95,7 @@ class NRR(object):
             self.count(parallel=parallel)
             self.save()
 
-        if len(self.counters) > 0:
+        if len(self.counters) > 0 and to_label:
             print('Labeling targets')
             self.labels = self.__label_targets(mode='log')
             self.labels_by_pool = self.count_label_by_pool()
@@ -430,7 +430,8 @@ class NRRList(object):
                                  bamfile=bamfile,
                                  bed=bed,
                                  region=region,
-                                 parallel=parallel))
+                                 parallel=parallel,
+                                 to_label=to_classify))
 
             bed = self.list[i].bed
             if self.list[i].counters:

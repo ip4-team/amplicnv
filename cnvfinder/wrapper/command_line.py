@@ -10,8 +10,9 @@ from abc import abstractmethod
 from collections import defaultdict
 
 from cnvfinder import CNVTest
-from cnvfinder.bedloader import ROI, bedwrite
+from cnvfinder.bedloader import ROI
 from cnvfinder.nrrhandler import NRR, NRRList, NRRTest
+from cnvfinder.utils.utils import bedwrite
 from cnvfinder.vcfhandler import VCF, VCFList, VCFTest
 from cnvfinder.wrapper.argdesc import ArgDesc, Strings
 from cnvfinder.wrapper.utils import get_arg_name_from_enum, get_arg_help_from_enum, getattr_by, parse_sub_command, \
@@ -120,17 +121,17 @@ class CNVFinderWrapper(object):
                                 help=get_arg_help_from_enum(ArgDesc.bamfile))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.region), type=str,
                                 help=get_arg_help_from_enum(ArgDesc.region))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.parallel), dest=ArgDesc.parallel.name,
-                                action='store_true', default=True, help=get_arg_help_from_enum(ArgDesc.parallel))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.output), type=str, required=True,
-                                help=get_arg_help_from_enum(ArgDesc.output))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.no_parallel), dest=ArgDesc.no_parallel.name,
+                                action='store_true', default=False, help=get_arg_help_from_enum(ArgDesc.no_parallel))
             args = parse_sub_command(parser)
 
-            nrr = NRR(bedfile=getattr_by(ArgDesc.target, args),
-                      bamfile=getattr_by(ArgDesc.bamfile, args),
-                      region=getattr_by(ArgDesc.region, args),
-                      parallel=getattr_by(ArgDesc.parallel, args))
-            nrr.save(getattr_by(ArgDesc.output, args))
+            parallel = not getattr_by(ArgDesc.no_parallel, args)
+
+            NRR(bedfile=getattr_by(ArgDesc.target, args),
+                bamfile=getattr_by(ArgDesc.bamfile, args),
+                region=getattr_by(ArgDesc.region, args),
+                parallel=parallel,
+                to_label=False)
 
     class Compare(_Command):
         def __init__(self, outer_instance):
@@ -216,9 +217,9 @@ class CNVFinderWrapper(object):
                                 help=get_arg_help_from_enum(ArgDesc.output))
             args = parse_sub_command(parser)
 
-            vcf = VCF(args.vcf)
+            vcf = VCF(getattr_by(ArgDesc.vcf, args))
             df = vcf.variants.drop(columns=['info'])
-            bedwrite(args.output, df)
+            bedwrite(getattr_by(ArgDesc.output, args), df)
 
     class Vcfcompare(_Command):
         def __init__(self, outer_instance):
@@ -277,7 +278,7 @@ class CNVFinderWrapper(object):
 
             return vcftest
 
-    class Bedloader(_Command):
+    class Define(_Command):
         def __init__(self, outer_instance):
             super().__init__(self.__class__.__name__.lower(), Strings.bedloader_description.value, outer_instance)
 
@@ -304,7 +305,7 @@ class CNVFinderWrapper(object):
                       mindata=getattr_by(ArgDesc.min_data, args),
                       maxpool=getattr_by(ArgDesc.max_pool, args))
 
-            bedwrite(getattr_by(ArgDesc.output, args), roi.targets)
+            bedwrite(getattr_by(ArgDesc.output, args), roi.targets, header=False)
 
 
 def main():
