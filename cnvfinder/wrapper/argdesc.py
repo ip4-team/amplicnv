@@ -60,8 +60,11 @@ class Strings(Enum):
     vcfcompare_description = 'Compare a test sample with a baseline of samples considering B-allele frequency and ' \
                              'other variant data'
     bedloader_description = 'Define targets from amplicons located in a BED file'
+    cfg = '\n\tpassing arguments using a configuration file.\n\tSee example: ' \
+          'http://cnvfinder.readthedocs.io/en/latest/#configuration-file '
     no_rd = 'Do not apply read depth data'
     no_vcf = 'Do not apply variant data'
+    cfg_file = 'Path to configuration file'
 
     # defaults
     default_outdir = 'cnvfinder_results'
@@ -115,3 +118,6 @@ class ArgDesc(Enum):
     # detect arguments
     no_rd = Strings.no_rd.value
     no_vcf = Strings.no_vcf.value
+
+    # cfg
+    cfg_file = Strings.cfg_file.value
