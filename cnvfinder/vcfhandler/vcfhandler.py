@@ -29,15 +29,16 @@ from ..utils import appenddir
 
 @validstr('vcffile', empty_allowed=False)
 class VCF(object):
-    '''
+    """
     Hold information on variants loaded from a VCF file
     using pysam.VariantFile
-    '''
+    """
+
     def __init__(self, vcffile):
-        '''
+        """
         Parameters:
              vcffile (str): vcf filename
-        '''
+        """
         self.vcffile = vcffile
         if self.vcffile.endswith('bam'):
             self.vcffile = em(self.vcffile, 'bam', 'vcf.gz').new_filename
@@ -90,7 +91,7 @@ class VCF(object):
         return DataFrame(variants, columns=columns)
 
     def calc_baf(self, info):
-        '''
+        """
         Compute the B allele frequency
 
         Parameters:
@@ -98,19 +99,19 @@ class VCF(object):
 
         Returns:
              baf (number): B allele frequency
-        '''
+        """
 
-        baf = info['AO'][0]/(info['AO'][0] + info['RO'])
+        baf = info['AO'][0] / (info['AO'][0] + info['RO'])
 
         return baf
 
 
 class VCFList(object):
     def __init__(self, vcffiles):
-        '''
+        """
         Parameters:
              vcffiles (list): vcf filenames
-        '''
+        """
         self.vcffiles = vcffiles
         self.list = []
 
@@ -122,15 +123,16 @@ class VCFList(object):
 
 @validstr('configfile', empty_allowed=True)
 class VCFTest(cdf):
-    '''
+    """
     Hold information about tests between a VCF baseline
     and a VCF test sample
-    '''
+    """
+
     def __init__(self, baseline, sample, metric='IQR',
                  interval_range=1.5, size=400, step=40,
                  cnv_like_range=0.7, maxdist=15000000,
                  path='results'):
-        '''
+        """
         Parameters:
              baseline (VCFList): obj representing variants of the baseline
              sample (VCF): obj representing variants of the sample test
@@ -150,7 +152,7 @@ class VCFTest(cdf):
              its closest cnv block, for it be a cnv as well.
 
              path (str): where to save (path/filename) analysis results
-        '''
+        """
 
         self.baseline = baseline
         self.sample = sample
@@ -171,7 +173,7 @@ class VCFTest(cdf):
         self._createdf()
 
     def compare(self, nmin=None, maxdiff=0.00001):
-        '''
+        """
         Apply filters on sample variants considering variants
         from baseline files
 
@@ -183,7 +185,7 @@ class VCFTest(cdf):
              nmin (number): min number samples (in baseline) to one variant to
              be considered error when appearing with the same frequency
              and position
-        '''
+        """
         if nmin is None:
             nmin = len(self.baseline.list)
 
@@ -240,9 +242,9 @@ class VCFTest(cdf):
         return 0
 
     def save_filtered_out(self):
-        '''
+        """
         For each sample, this method saves filtered out variants on file
-        '''
+        """
         try:
             print('Saving filtered out variants of {}'.format(self.sample.vcffile))
             with open(self.sample.vcffile + '.txt', 'w') as file:
@@ -256,9 +258,9 @@ class VCFTest(cdf):
             print(error)
 
     def load_filtered_out(self):
-        '''
+        """
         Load filtered out variants from file
-        '''
+        """
         variants = []
         variants_pos = []
 
@@ -283,14 +285,14 @@ class VCFTest(cdf):
             self.filtered_out_pos = None
 
     def __splitVars(self, homozygous_freq=0.90):
-        '''
+        """
         From self.df, this method creates two new dataframes:
         one for homozygous variants and another for heterozygous
         variants
 
         Parameters:
            homozygous_freq (number): relative homozygous frequency
-        '''
+        """
         df = self.df
         return df[df.baf >= homozygous_freq], df[df.baf < homozygous_freq]
 
@@ -304,7 +306,7 @@ class VCFTest(cdf):
             return rows
 
     def getview(self, mode=None):
-        '''
+        """
         Return a view of self.df depending on the mode
 
         Parameters:
@@ -316,7 +318,7 @@ class VCFTest(cdf):
         Returns:
              df (Pandas.DataFrame): dataframe view
 
-        '''
+        """
         if mode is 'homozygous':
             return self.hom_vars
         if mode is 'heterozygous':
@@ -325,7 +327,7 @@ class VCFTest(cdf):
             return self.df
 
     def cluster_baf(self, region=None, mode=None, n_clusters=2):
-        '''
+        """
         cluster BAFs in region applying KMeans.
         return labels, cluster centers, and evaluation score
         for clustering
@@ -341,7 +343,7 @@ class VCFTest(cdf):
              dic_labels (defaultdict): labels dictionary
              centers (list): cluster centers
              score: silhouette score for the resulting clustering
-        '''
+        """
         dic_labels = defaultdict(list)
         bafs = self.getin(column='baf', region=region, mode=mode)
         x = [[baf] for baf in bafs]
@@ -373,12 +375,12 @@ class VCFTest(cdf):
         return dic_labels, centers, score
 
     def eliminate_vars(self):
-        '''
+        """
         filter out given variants
 
         Parameters:
              to_eliminate (list): list of variants to filter out
-        '''
+        """
         if self.filtered_out_pos is not None:
             initial_len = len(self.df)
             print('Filtering out variants')
@@ -391,12 +393,12 @@ class VCFTest(cdf):
                                                                  end_len))
 
     def filter(self, mindp=60):
-        '''
+        """
         apply filters on variants
 
         Parameters:
              mindp (number): minimum # reads
-        '''
+        """
         print('Filtering by: {}'.format('mindp'))
         initial_len = len(self.df)
         self.df = self.df[self.df.dp >= mindp]
@@ -406,17 +408,17 @@ class VCFTest(cdf):
                                                              end_len))
 
     def split(self):
-        '''
+        """
         split self.df in two dataframes:
         "self.het_vars" for heterozygous variants and
         "self.hom_vars" for homozygous variants
-        '''
+        """
         if self.df is not None:
             self.hom_vars, self.het_vars = self.__splitVars()
 
     @overrides(cdf)
     def iterchroms(self, mode=None, df=None):
-        '''
+        """
         create groups of variants by chromosome
 
         Parameters:
@@ -426,7 +428,7 @@ class VCFTest(cdf):
         Returns:
              list of dictionaries:
                   {'id': 'chrom:chromStart-chromEnd', 'df': dataframe}
-        '''
+        """
         if df is None:
             return self.creategroups(self.getview(mode=mode))
         else:
@@ -434,13 +436,13 @@ class VCFTest(cdf):
 
     def vcfplot(self, region=None, mode=None, filename=None,
                 auto_open=False):
-        '''
+        """
         plot variants within region
 
         Parameters:
              region (string): it must stick to the format:
                   chrom:chromStart-chromEnd
-        '''
+        """
 
         # define layout for x and y axis for histogram
         hist_layout = defaultdict(lambda: None)
@@ -469,11 +471,11 @@ class VCFTest(cdf):
 
     def __region_plot(self, region, mode, scat_layout, hist_layout,
                       auto_open, filename=None):
-        '''
+        """
         plot variants within region
         region -- must stick to the format:
         chrom:chromStart-chromEnd
-        '''
+        """
         hist_traces = []
         scatter_traces = []
         titles = []
@@ -495,8 +497,8 @@ class VCFTest(cdf):
 
         if filename is None:
             filename = '{}/{}-{}.html'.format(self.path2plot,
-                                             region.split(':')[0],
-                                             self.rootname)
+                                              region.split(':')[0],
+                                              self.rootname)
         plot(create_subplots([scatter_traces, hist_traces],
                              titles, layouts=[scat_layout, hist_layout],
                              height=600),
@@ -505,9 +507,9 @@ class VCFTest(cdf):
 
     def __noregion_plot(self, mode, scat_layout, hist_layout,
                         auto_open, filename=None):
-        '''
+        """
         plot variants when region is None
-        '''
+        """
         hist_traces = []
         scatter_traces = []
         titles = []
@@ -515,8 +517,8 @@ class VCFTest(cdf):
         # define filename
         if filename is None:
             filename = '{}/{}-{}.html'.format(self.path2plot,
-                                             'all-chrom',
-                                             self.rootname)
+                                              'all-chrom',
+                                              self.rootname)
 
         for group in self.iterchroms():
             st, ht, t = self.__region_plot(group['id'], mode, scat_layout,
@@ -526,7 +528,7 @@ class VCFTest(cdf):
             titles.extend(t)
         plot(create_subplots([scatter_traces, hist_traces],
                              titles, layouts=[scat_layout,
-                             hist_layout]),
+                                              hist_layout]),
              auto_open=auto_open, filename=filename)
         return scatter_traces, hist_traces, titles
 
@@ -559,13 +561,13 @@ class VCFTest(cdf):
         return self.__IQR(DataFrame(all_blocks, columns=columns))
 
     def __IQR(self, blocks):
-        '''
+        """
         compute IQR on silhouette score and centers
         difference for each block
 
         Parameters:
              blocks (list): potential CNV bocks
-        '''
+        """
         print('Working on clustering (BAF) data')
         all_blocks = []
         columns = list(blocks.columns)
@@ -603,15 +605,16 @@ class VCFTest(cdf):
 
 @validstr('filename', empty_allowed=False)
 class VCFConfig(object):
-    '''
+    """
     Detect CNVs based on read B allele frequency (BAF) data
-    '''
+    """
+
     def __init__(self, filename, tofilter=True):
-        '''
+        """
         Parameters:
              filename (str): config file filename
              tofilter (boolean): whether to apply filters on variants
-        '''
+        """
         self.filename = filename
         self.sections_params = {
             'baseline': 'm',
@@ -647,5 +650,5 @@ class VCFConfig(object):
         self.vcftest.vcfplot()
         filename = '{}/vcftest.csv'.format(self.vcftest.path2table)
         print('Writing table at {}'.format(filename))
-        self.vcftest.df.to_csv(filename, sep='\t',  index=False)
+        self.vcftest.df.to_csv(filename, sep='\t', index=False)
         print('Done!')

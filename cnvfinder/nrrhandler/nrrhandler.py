@@ -31,7 +31,7 @@ from ..utils import appenddir
 
 
 def readcount(region_list, filename):
-    '''
+    """
     count the number of reads in region using
     pysam.AlignmentFile.count method
 
@@ -41,7 +41,7 @@ def readcount(region_list, filename):
 
     Returns:
          counter (number/None): counter number or None in case it fails
-    '''
+    """
     try:
         with pysam.AlignmentFile(filename, 'rb') as bamfile:
             counters = []
@@ -61,15 +61,16 @@ def readcount(region_list, filename):
 @validstr('bamfile', empty_allowed=True)
 @validstr('region', empty_allowed=True)
 class NRR(object):
-    '''
+    """
     NRR stands for "Number of Reads in Region" loaded from a BAM file.
-    '''
+    """
+
     def __init__(self, bedfile=None, bamfile=None, region=None,
-                 counters=[], bed=None, parallel=True):
-        '''
+                 counters=[], bed=None, parallel=True, to_label=False):
+        """
         Parameters:
              bedfile (str): filename (BED) where the amplicons are listed in
-             bamfile (str): aligment file name (bam format)
+             bamfile (str): alignment file name (bam format)
 
              region (str): region limit for analysis (view). It must stick to
              the format: chrom:chromStart-chromEnd
@@ -78,7 +79,7 @@ class NRR(object):
              bed (ROI): list of amplicons already loaded into memory
              parallel: whether count target read depth in parallel
 
-        '''
+        """
         self.bedfile = bedfile
         self.bamfile = bamfile
         self.region = region
@@ -94,7 +95,7 @@ class NRR(object):
             self.count(parallel=parallel)
             self.save()
 
-        if len(self.counters) > 0:
+        if len(self.counters) > 0 and to_label:
             print('Labeling targets')
             self.labels = self.__label_targets(mode='log')
             self.labels_by_pool = self.count_label_by_pool()
@@ -128,7 +129,7 @@ class NRR(object):
         self._nreads = value
 
     def count(self, cores=None, parallel=False):
-        '''
+        """
         Count read depth, in the alignment file (bamfile), for each target
         that was loaded from the BED file
 
@@ -138,7 +139,7 @@ class NRR(object):
              to verify how many processors are in the machine.
 
              parallel (boolean): whether to count in parallel
-        '''
+        """
         if parallel:
             if cores is None:
                 cores = cpu_count()
@@ -150,7 +151,7 @@ class NRR(object):
             self.normalized_counters = self.__norm()
 
     def load(self, filename):
-        '''
+        """
         Load a single NRR from a text file
 
         Parameters:
@@ -161,7 +162,7 @@ class NRR(object):
              1: when data loading is successful
              None: when it fails
 
-        '''
+        """
         print('Loading {0} read counters'.format(filename))
 
         try:
@@ -198,12 +199,12 @@ class NRR(object):
         return 1
 
     def save(self, filename=None):
-        '''
+        """
         Save a single NRR on a text file
 
         Parameters:
              filename (str): the name of the file
-        '''
+        """
         print('Saving {0} read counters'.format(self.bamfile))
         if filename is None:
             filename = self.bamfile + '.txt'
@@ -278,10 +279,10 @@ class NRR(object):
         return counters
 
     def __count_pools(self):
-        '''
+        """
         Count number of reads per pool.
         This method is used when loading a NRR from a file
-        '''
+        """
         print('Counting reads by pools')
         targets = list(self.bed.targets.itertuples())
         if (len(targets) != len(self.counters)):
@@ -292,7 +293,7 @@ class NRR(object):
         reads_by_pool = defaultdict(int)
         for i, t in enumerate(targets):
             for pool in t[5].pools:
-                reads_by_pool[pool] += self.counters[i]/len(t[5].pools)
+                reads_by_pool[pool] += self.counters[i] / len(t[5].pools)
         self.nreads = sum(self.counters)
 
         return reads_by_pool
@@ -310,7 +311,7 @@ class NRR(object):
             current_pools_counter = []
             for pool in t[5].pools:
                 current_pools_counter.append((self.counters[i] /
-                                             self.reads_by_pool[pool]))
+                                              self.reads_by_pool[pool]))
             normalized.append(mag * (sum(current_pools_counter) /
                                      len(t[5].pools)))
 
@@ -328,10 +329,10 @@ class NRR(object):
         return labels
 
     def __label_targets(self, iqr_range=1.5, std_range=1.5, mode='normalized'):
-        '''
+        """
         Label targets considering IQR on counters
         (normalized or not - user's choice) for
-        discoverying whether a target is in
+        discovering whether a target is in
         the lower (-) quartile, upper (+) quartile, or middle (o)
 
         Parameters:
@@ -343,7 +344,7 @@ class NRR(object):
         Returns:
             labels (list): a list of size len(self.counters) representing the
             labels for the targets
-        '''
+        """
         # compute metric (IQR)
         if mode == 'normalized':
             counters = self.normalized_counters
@@ -366,12 +367,12 @@ class NRR(object):
         return labels
 
     def count_label_by_pool(self):
-        '''
+        """
         Count the number of targets arranged by label in each pool
 
         Returns:
         ldf (DataFrame): number of targets considering pools x labels
-        '''
+        """
 
         df = DataFrame(self.bed.targets.iloc[:, 4])
         df[len(df.columns)] = self.labels
@@ -393,12 +394,13 @@ class NRR(object):
 @validstr('bedfile', empty_allowed=True)
 @validstr('region', empty_allowed=True)
 class NRRList(object):
-    '''
+    """
     NRR list management
-    '''
+    """
+
     def __init__(self, bedfile=None, bamfiles=None, region=None,
                  bed=None, parallel=True, to_classify=False):
-        '''
+        """
         Parameters:
              bedfile (str): filename (BED) where the amplicons are listed in
              bamfiles (list): list of aligment file names (bam format)
@@ -408,7 +410,7 @@ class NRRList(object):
 
              bed (ROI): list of amplicons already loaded into memory
              parallel: whether count target read depth in parallel
-        '''
+        """
         self.bedfile = bedfile
         self.bamfiles = bamfiles
         self.region = region
@@ -428,7 +430,8 @@ class NRRList(object):
                                  bamfile=bamfile,
                                  bed=bed,
                                  region=region,
-                                 parallel=parallel))
+                                 parallel=parallel,
+                                 to_label=to_classify))
 
             bed = self.list[i].bed
             if self.list[i].counters:
@@ -462,19 +465,19 @@ class NRRList(object):
             nrr.save(filename=nrr.bamfile + '.txt')
 
     def makemean(self):
-        '''
+        """
         Compute baseline counter mean
-        '''
+        """
         self.normalized_mean = []
         self.sd = []
         if self.__counters and len(self.__counters) == len(self.list):
             try:
-                self.mean = [sum(c)/len(c) for c in zip(*self.__counters)]
+                self.mean = [sum(c) / len(c) for c in zip(*self.__counters)]
 
                 for counters in zip(*self.__normalized_counters):
-                    mean = sum(counters)/len(counters)
+                    mean = sum(counters) / len(counters)
                     deviations = [(c - mean) ** 2 for c in counters]
-                    variance = sum(deviations)/len(counters)
+                    variance = sum(deviations) / len(counters)
                     sd = sqrt(variance)
                     self.normalized_mean.append(mean)
                     self.sd.append(sd)
@@ -493,10 +496,10 @@ class NRRList(object):
                               '{0} counter list is missing!'.format(l.bamfile + '.txt'))
 
     def _addpools(self, targets):
-        '''
+        """
         add pools info to the df in order to verify whether +, -, or o
         amplicons are pool related
-        '''
+        """
         pools = [target[5].pools for target in targets.itertuples()]
         return pools
 
@@ -516,16 +519,17 @@ class NRRList(object):
 @validstr('configfile', empty_allowed=True)
 @validstr('path', empty_allowed=False)
 class NRRTest(cdf):
-    '''
+    """
     Hold information about tests between a NRR baseline
     and a NRR test sample
-    '''
+    """
+
     def __init__(self, baseline, sample, path='results',
                  size=200, step=10, metric='std', interval_range=3,
                  minread=30, below_cutoff=0.7, above_cutoff=1.3,
                  maxdist=15000000, cnv_like_range=0.7,
                  bins=500, method='chr_group'):
-        '''
+        """
         Construct and initialize a NRRTest object.
         Parameters:
              baseline (NRRList): obj representing exomes of the baseline
@@ -552,7 +556,7 @@ class NRRTest(cdf):
 
              bins (int): number of bins to use when plotting ratio data
              method (str): method used in order to group rations when plotting
-        '''
+        """
         self.baseline = baseline
         self.sample = sample
         self.ratios = []
@@ -623,10 +627,10 @@ class NRRTest(cdf):
 
     @overrides(cdf)
     def _createdf(self):
-        '''
+        """
         create NRRTest dataframe with sample, baseline, and
         test data
-        '''
+        """
         df = self.sample.bed.targets.copy()
         df.loc[:, len(df.columns)] = self.sample.counters
         df.loc[:, len(df.columns)] = self.baseline.mean
@@ -638,10 +642,10 @@ class NRRTest(cdf):
         self.df = df
 
     def makeratio(self):
-        '''
+        """
         Compute between the standardized read depth values from a test sample
         and the mean baseline read depth
-        '''
+        """
         print('Calculating reference bam files # reads mean')
         self.baseline.makemean()
 
@@ -675,16 +679,16 @@ class NRRTest(cdf):
             if self.method == 'chr_group':
                 xs, ys, offsets, names = self.__regroup(self.bins, self.method)
                 scatter(xs, ys, yax=[0, 5], offset=offsets,
-                                 name=names,
-                                 filename='{}/{}-{}.html'.format(self.path2plot,
-                                                                 'all-chrom',
-                                                                 self.rootname))
+                        name=names,
+                        filename='{}/{}-{}.html'.format(self.path2plot,
+                                                        'all-chrom',
+                                                        self.rootname))
             else:
                 x, y = self.__remean(self.ratios, self.bins, self.method)
                 scatter(x, y, yax=[0, 5],
-                                 filename='{}/{}-{}.html'.format(self.path2plot,
-                                                                 'all-chrom',
-                                                                 self.rootname))
+                        filename='{}/{}-{}.html'.format(self.path2plot,
+                                                        'all-chrom',
+                                                        self.rootname))
         else:
             print('There is no data to plot!')
             print('You should call NRRTest.makeratio() ' +
@@ -702,10 +706,10 @@ class NRRTest(cdf):
             bins = len(ratios)
 
         if method == 'blocks':
-            xs = [i*bins for i in range(len(ratios)//bins)]
+            xs = [i * bins for i in range(len(ratios) // bins)]
         else:
-            xs = [i for i in range(len(ratios)-bins+1)]
-        ys = [sum(ratios[x:x+bins])/bins for x in xs]
+            xs = [i for i in range(len(ratios) - bins + 1)]
+        ys = [sum(ratios[x:x + bins]) / bins for x in xs]
         return xs, ys
 
     def __regroup(self, bins, method):
@@ -731,9 +735,9 @@ class NRRTest(cdf):
         return xs, ys, offsets, unique_chroms
 
     def summary(self, npools=12):
-        '''
+        """
         Create a summary of NRRTest samples (baseline and test)
-        '''
+        """
         # define column names
         columns = ['ntotal']
         poolnames = ['pool_{}'.format(i) for i in range(1, npools + 1)]
@@ -754,7 +758,7 @@ class NRRTest(cdf):
         return df
 
     def merge(self, potential_cnvs):
-        '''
+        """
         Merge CNV blocks
 
         Parameters:
@@ -762,7 +766,7 @@ class NRRTest(cdf):
 
         Returns
              cnvs (list): list of CNVs merged from blocks
-        '''
+        """
         cnv_dict = defaultdict(str)
         for pcnv in potential_cnvs:
             for cnv in pcnv.itertuples():
@@ -828,20 +832,21 @@ class NRRTest(cdf):
 
 @validstr('filename', empty_allowed=False)
 class NRRConfig(object):
-    '''
+    """
     Detect CNVs based on read depth data
-    '''
+    """
+
     def __init__(self, filename):
-        '''
+        """
         Parameters:
              filename (str): the configfile's name
-        '''
+        """
         self.filename = filename
         self.sections_params = {
             'baseline': 'm',
             'bed': 'm',
             'sample': 'm',
-            'output':  'm',
+            'output': 'm',
             'targtest': 'o'
         }
         # load configfile
@@ -868,5 +873,5 @@ class NRRConfig(object):
             self.nrrtest.plot()
             filename = '{}/nrrtest.csv'.format(self.nrrtest.path2table)
             print('Writing table at {}'.format(filename))
-            self.nrrtest.df.to_csv(filename, sep='\t',  index=False)
+            self.nrrtest.df.to_csv(filename, sep='\t', index=False)
             print('Done!')

@@ -17,7 +17,6 @@ def scatter(x, y, yax='auto',
             mode='markers',
             filename='temp-plot.html',
             mult=2):
-
     if (offset is not None and
             name is not None):
         data = create_traces(x, y, offset, name, mode, mult)
@@ -55,12 +54,13 @@ def create_traces(xs, ys, offsets, names, mode, mult, size=3):
 
 
 class HeatMap(object):
-    '''
+    """
     This class creates a heatmap using reads counting
     values from a BAM file
-    '''
+    """
+
     def __init__(self, counters, pools, nbins=10):
-        '''
+        """
         Calls functions in order to create the heatmap
 
         Parameters:
@@ -73,33 +73,32 @@ class HeatMap(object):
                   that is acctually from pools[i]
 
              nbins (int): number of bins
-        '''
+        """
         self.__create(counters, pools, nbins)
 
     def __create(self, counters, pools, nbins):
-        '''
+        """
         Creates the heatmap itself
-        '''
+        """
         z = [[] for z in range(max(pools))]
         x = ['Pool ' + str(x) for x in range(1, max(pools) + 1)]
 
         binned_counts = [defaultdict(int) for i in range(max(pools))]
         for i in range(len(counters)):
-            binned_counts[pools[i]-1][1+counters[i]//nbins] += 1
+            binned_counts[pools[i] - 1][1 + counters[i] // nbins] += 1
 
         for i in range(len(binned_counts)):
             for area in range(max(binned_counts[i])):
                 z[i].append(binned_counts[i].get(area, 0))
 
         data = [go.Heatmap(x=x, z=z, transpose=True,
-                colorscale='Reds', dy=nbins)]
+                           colorscale='Reds', dy=nbins)]
         plot({"data": data})
 
 
 def y_scatter(y, x=None, filename='temp-plot.html', toplot=True,
               mode='markers', size=1, name='', color=None,
               auto_open=False):
-
     if x is None:
         data = [
             go.Scatter(
@@ -129,7 +128,6 @@ def y_scatter(y, x=None, filename='temp-plot.html', toplot=True,
 
 def histogram(x, filename='temp-plot.html', toplot=True,
               autobinx=True, color=None, auto_open=False):
-
     data = [
         go.Histogram(
             x=x,
@@ -148,7 +146,7 @@ def histogram(x, filename='temp-plot.html', toplot=True,
 
 def create_subplots(mtraces, titles, layouts=None,
                     height=10000, width=1250):
-    '''
+    """
     Make subplots using plotly.tools
 
     Parameters:
@@ -157,7 +155,7 @@ def create_subplots(mtraces, titles, layouts=None,
          layouts (list): one dimensional array of (dicts) layouts
          height (number): plot height
          width (number): plot width
-    '''
+    """
     if not ismultlist(mtraces):
         raise ValueError('mtraces must be multidimensional!')
 
