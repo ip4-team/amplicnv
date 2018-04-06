@@ -384,3 +384,7 @@ def bedwrite(filename, df, index=False, header=True, sep='\t'):
         os.remove(filename)
         os.remove(filename + '.idx')
     df.to_csv(filename, sep=sep, index=index, header=header)
+
+
+def get_package_name():
+    return __name__.split('.')[0]
