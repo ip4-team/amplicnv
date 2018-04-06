@@ -7,13 +7,13 @@ from matplotlib.collections import BrokenBarHCollection
 from cnvfinder.utils import resource_path_or_exit
 
 """
- Attribution: this file (ideogram.py) is based on https://gist.github.com/daler/c98fc410282d7570efc3
+ attribution: this file (ideogram.py) is based on https://gist.github.com/daler/c98fc410282d7570efc3
 """
 
 
 def chromosome_collections(df, y_positions, height, **kwargs):
     """
-    Yields BrokenBarHCollection of features that can be added to an Axes object
+    yields BrokenBarHCollection of features that can be added to an Axes object
     :param df:
     :param y_positions:
     :param height:
@@ -48,6 +48,12 @@ class Ideogram(object):
         self.__pgk_bands_file = 'data/cytoBandIdeo.txt'
         self.df = self.load_bands()
 
+        # chromosomes
+        self.ybase = 0
+        self.chrom_ybase = {}
+        self.chrom_centers = {}
+        self.fig = self.add_chromosomes()
+
     @property
     def colors(self):
         return self._colors
@@ -79,29 +85,29 @@ class Ideogram(object):
         else:
             self._chroms = value
 
-    def m_plot(self):
-        ybase = 0
-        chrom_ybase = {}
-        chrom_centers = {}
+    def add_chromosomes(self):
 
         for chrom in self.chroms[::-1]:
-            chrom_ybase[chrom] = ybase
-            chrom_centers[chrom] = ybase + self.chrom_height / 2.
-            ybase += self.chrom_height + self.chrom_spacing
+            self.chrom_ybase[chrom] = self.ybase
+            self.chrom_centers[chrom] = self.ybase + self.chrom_height / 2.
+            self.ybase += self.chrom_height + self.chrom_spacing
 
         fig = plt.figure(figsize=self.fig_size)
         ax = fig.add_subplot(111)
 
         print("adding ideograms...")
-        for collection in chromosome_collections(self.df, chrom_ybase, self.chrom_height, edgecolors=(0, 0, 0)):
+        for collection in chromosome_collections(self.df, self.chrom_ybase, self.chrom_height, edgecolors=(0, 0, 0)):
             ax.add_collection(collection)
 
-        # Axes tweaking
-        ax.set_yticks([chrom_centers[i] for i in self.chroms])
+        # axes tweaking
+        ax.set_yticks([self.chrom_centers[i] for i in self.chroms])
         ax.set_yticklabels(self.chroms)
         ax.axis('tight')
 
-        plt.show()
+        return fig
+
+    def show(self):
+        plt.show(self.fig)
 
     def load_bands(self):
         file = self.file if self.file is not None else resource_path_or_exit(self.__pgk_bands_file)
@@ -110,3 +116,6 @@ class Ideogram(object):
         df['width'] = df.end - df.start
         df['colors'] = df.gieStain.apply(lambda x: self.colors[x])
         return df
+
+    def add_genomic_data(self):
+        pass
