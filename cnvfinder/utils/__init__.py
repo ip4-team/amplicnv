@@ -10,3 +10,5 @@ from .utils import createdirs
 from .utils import createdir
 from .utils import overrides
 from .utils import appenddir
+from .utils import get_package_name
+from .utils import resource_path_or_exit

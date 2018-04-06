@@ -1,29 +1,24 @@
 #!/usr/bin/env python3
-import sys
 
 import pandas
-import pkg_resources
 from matplotlib import pyplot as plt
 from matplotlib.collections import BrokenBarHCollection
 
-from cnvfinder.utils.utils import get_package_name
+from cnvfinder.utils import resource_path_or_exit
+
+"""
+ Attribution: this file (ideogram.py) is based on https://gist.github.com/daler/c98fc410282d7570efc3
+"""
 
 
 def chromosome_collections(df, y_positions, height, **kwargs):
     """
-    Yields BrokenBarHCollection of features that can be added to an Axes
-    object.
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        Must at least have columns ['chrom', 'start', 'end', 'color']. If no
-        column 'width', it will be calculated from start/end.
-    y_positions : dict
-        Keys are chromosomes, values are y-value at which to anchor the
-        BrokenBarHCollection
-    height : float
-        Height of each BrokenBarHCollection
-    Additional kwargs are passed to BrokenBarHCollection
+    Yields BrokenBarHCollection of features that can be added to an Axes object
+    :param df:
+    :param y_positions:
+    :param height:
+    :param kwargs: are passed to BrokenBarHCollection
+    :return:
     """
     del_width = False
     if 'width' not in df.columns:
@@ -43,12 +38,14 @@ class Ideogram(object):
     def __init__(self, file: str = None, chroms: list = None, chrom_height: int = 1,
                  chrom_spacing: int = 1, fig_size: tuple = (6, 8),
                  colors: dict = None):
+
         self.chrom_height = chrom_height
         self.chrom_spacing = chrom_spacing
         self.fig_size = fig_size
         self._colors = self.colors = colors
         self._chroms = self.chroms = chroms
         self.file = file
+        self.__pgk_bands_file = 'data/cytoBandIdeo.txt'
         self.df = self.load_bands()
 
     @property
@@ -106,18 +103,8 @@ class Ideogram(object):
 
         plt.show()
 
-    @staticmethod
-    def get_filename_from_pkg():
-        file = 'data/cytoBandIdeo.txt'
-        pkg_name = get_package_name()
-
-        if not pkg_resources.resource_exists(pkg_name, file):
-            sys.exit('{} not found! Was it added in setup.py?')
-
-        return pkg_resources.resource_filename(pkg_name, file)
-
     def load_bands(self):
-        file = self.file if self.file is not None else self.get_filename_from_pkg()
+        file = self.file if self.file is not None else resource_path_or_exit(self.__pgk_bands_file)
         df = pandas.read_table(file, skiprows=1, names=['chrom', 'start', 'end', 'name', 'gieStain'])
         df = df[df.chrom.apply(lambda x: x in self.chroms)]
         df['width'] = df.end - df.start

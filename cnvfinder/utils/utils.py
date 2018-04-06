@@ -5,10 +5,13 @@
 @author: valengo
 """
 import contextlib
+import sys
 from collections import defaultdict
 import configparser
 import os
 import errno
+
+import pkg_resources
 
 
 class GenericDescriptor(object):
@@ -387,4 +390,26 @@ def bedwrite(filename, df, index=False, header=True, sep='\t'):
 
 
 def get_package_name():
+    """
+    Get package name
+    :return: name
+    """
     return __name__.split('.')[0]
+
+
+def resource_exists(filename: str):
+    """
+    :param filename:
+    :return: whether a file exists in package
+    """
+    return pkg_resources.resource_exists(get_package_name(), filename)
+
+
+def resource_path_or_exit(filename: str):
+    """
+    :param filename:
+    :return: filename path in package
+    """
+    if not resource_exists:
+        sys.exit('\"{}\" not found! Was it added in setup.py?'.format(filename))
+    return pkg_resources.resource_filename(get_package_name(), filename)
