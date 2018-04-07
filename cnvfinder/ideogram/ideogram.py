@@ -52,7 +52,7 @@ class Ideogram(object):
         self.ybase = 0
         self.chrom_ybase = {}
         self.chrom_centers = {}
-        self.fig = self.add_chromosomes()
+        self.fig, self.ax = self.add_chromosomes()
 
     @property
     def colors(self):
@@ -104,7 +104,7 @@ class Ideogram(object):
         ax.set_yticklabels(self.chroms)
         ax.axis('tight')
 
-        return fig
+        return fig, ax
 
     def show(self):
         plt.show(self.fig)
@@ -117,5 +117,16 @@ class Ideogram(object):
         df['colors'] = df.gieStain.apply(lambda x: self.colors[x])
         return df
 
-    def add_genomic_data(self):
-        pass
+    def add_genomic_data(self, df):
+        ndf = df[df.chrom.apply(lambda x: x in self.chroms)]
+        ndf['colors'] = '#2243a8'
+
+        data_ybase = {}
+        data_height = self.chrom_spacing / 2
+        data_padding = 0.1
+
+        for chrom in self.chroms:
+            data_ybase[chrom] = self.chrom_ybase[chrom] - data_height - data_padding
+
+        for collection in chromosome_collections(ndf, data_ybase, data_height, alpha=0.5, linewidths=0):
+            self.ax.add_collection(collection)
