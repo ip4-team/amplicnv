@@ -35,8 +35,8 @@ def chromosome_collections(df, y_positions, height, **kwargs):
 
 
 class Ideogram(object):
-    def __init__(self, file: str = None, chroms: list = None, chrom_height: int = 1,
-                 chrom_spacing: int = 1, fig_size: tuple = (6, 8),
+    def __init__(self, file: str = None, chroms: list = None, chrom_height: float = 1,
+                 chrom_spacing: float = 1.5, fig_size: tuple = (6, 8),
                  colors: dict = None):
 
         self.chrom_height = chrom_height
@@ -45,7 +45,7 @@ class Ideogram(object):
         self._colors = self.colors = colors
         self._chroms = self.chroms = chroms
         self.file = file
-        self.__pgk_bands_file = 'data/cytoBandIdeo.txt'
+        self.__pgk_bands_file = 'data/cytoBand.txt'
         self.df = self.load_bands()
 
         # chromosomes
@@ -112,21 +112,32 @@ class Ideogram(object):
     def load_bands(self):
         file = self.file if self.file is not None else resource_path_or_exit(self.__pgk_bands_file)
         df = pandas.read_table(file, skiprows=1, names=['chrom', 'start', 'end', 'name', 'gieStain'])
-        df = df[df.chrom.apply(lambda x: x in self.chroms)]
+        df = self.filter_by_chroms(df)
         df['width'] = df.end - df.start
         df['colors'] = df.gieStain.apply(lambda x: self.colors[x])
         return df
 
-    def add_genomic_data(self, df):
-        ndf = df[df.chrom.apply(lambda x: x in self.chroms)]
-        ndf['colors'] = '#2243a8'
+    def filter_by_chroms(self, df: pandas.DataFrame) -> pandas.DataFrame:
+        return df[df.chrom.apply(lambda x: x in self.chroms)]
+
+    def add_data(self, df: pandas.DataFrame, height: float = 0.5, padding: float = 0.1,
+                 color: str = '#2243a8', alpha: float = 0.5, linewidths: float = 0, **kwargs):
+        df = self.filter_by_chroms(df)
+
+        if'colors' not in df.columns:
+            df['colors'] = color
 
         data_ybase = {}
-        data_height = self.chrom_spacing / 2
-        data_padding = 0.1
 
         for chrom in self.chroms:
-            data_ybase[chrom] = self.chrom_ybase[chrom] - data_height - data_padding
+            data_ybase[chrom] = self.chrom_ybase[chrom] + (height + padding)
 
-        for collection in chromosome_collections(ndf, data_ybase, data_height, alpha=0.5, linewidths=0):
+        for collection in chromosome_collections(df, data_ybase, abs(height),
+                                                 alpha=alpha, linewidths=linewidths, **kwargs):
             self.ax.add_collection(collection)
+
+    def add_data_above(self, df: pandas.DataFrame):
+        self.add_data(df, height=0.5, padding=0.5)
+
+    def add_data_below(self, df):
+        self.add_data(df, height=-0.5, padding=-0.1)
