@@ -146,7 +146,7 @@ class CNVConfig(object):
         Parameters:
             filename (str): the configfile's name
             ratio (boolean): specify the usage of read depth data
-            vatiant (boolean): specify the usage of variant data
+            variant (boolean): specify the usage of variant data
         """
         self.filename = filename
         self.sections_params = {
