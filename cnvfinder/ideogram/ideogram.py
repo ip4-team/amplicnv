@@ -23,11 +23,11 @@ def chromosome_collections(df, y_positions, height, **kwargs):
     del_width = False
     if 'width' not in df.columns:
         del_width = True
-        df['width'] = df['end'] - df['start']
+        df['width'] = df['chromEnd'] - df['chromStart']
     for chrom, group in df.groupby('chrom'):
         print(chrom)
         yrange = (y_positions[chrom], height)
-        xranges = group[['start', 'width']].values
+        xranges = group[['chromStart', 'width']].values
         yield BrokenBarHCollection(
             xranges, yrange, facecolors=group['colors'], **kwargs)
     if del_width:
@@ -39,8 +39,9 @@ class Ideogram(object):
                  chrom_spacing: float = 1.5, fig_size: tuple = (6, 8), colors: dict = None):
         """
         Keyword arguments
-        :param file: file to load chromosome bands data. BED format with 'chrom', 'start', 'end', 'name', and 'gieStain'
-        as columns. First line is skipped. Default: 'cytoBand' table from https://genome.ucsc.edu/cgi-bin/hgTables.
+        :param file: file to load chromosome bands data. BED format with 'chrom', 'chromStart', 'chromEnd', 'name',
+        and 'gieStain' as columns. First line is skipped.
+        Default: 'cytoBand' table from https://genome.ucsc.edu/cgi-bin/hgTables.
         :param chroms: plot only chromosomes that are in this list.
         Default: ['chr%s' % i for i in list(range(1, 23)) + ['M', 'X', 'Y']]
         :param chrom_height: height of each ideogram
@@ -112,7 +113,10 @@ class Ideogram(object):
         # axes tweaking
         ax.set_yticks([self.chrom_centers[i] for i in self.chroms])
         ax.set_yticklabels(self.chroms)
-        ax.axis('tight')
+        ax.xaxis.set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
 
         return fig, ax
 
@@ -122,21 +126,23 @@ class Ideogram(object):
         :param filename: filename
         :param kwargs: are passed to pyplot.savefig
         """
+        self.ax.axis('tight')
         self.fig.savefig(filename, **kwargs)
 
     def show(self):
-        plt.show(self.fig)
+        self.ax.axis('tight')
+        self.fig.show()
 
     def load_bands(self):
         file = self.file if self.file is not None else resource_path_or_exit(self.__pgk_bands_file)
-        df = pandas.read_table(file, skiprows=1, names=['chrom', 'start', 'end', 'name', 'gieStain'])
+        df = pandas.read_table(file, skiprows=1, names=['chrom', 'chromStart', 'chromEnd', 'name', 'gieStain'])
         df = self.filter_by_chroms(df)
-        df['width'] = df.end - df.start
+        df['width'] = df.chromEnd - df.chromStart
         df['colors'] = df.gieStain.apply(lambda x: self.colors[x])
         return df
 
     def filter_by_chroms(self, df: pandas.DataFrame) -> pandas.DataFrame:
-        return df[df.chrom.apply(lambda x: x in self.chroms)]
+        return df[df.chrom.apply(lambda x: x in self.chroms)].copy()
 
     def add_data(self, df: pandas.DataFrame, height: float = 0.5, padding: float = 0.1,
                  color: str = '#2243a8', alpha: float = 0.5, linewidths: float = 0, **kwargs):
@@ -169,7 +175,7 @@ class Ideogram(object):
         Wrapper for adding data above ideograms
         :param df: data
         """
-        self.add_data(df, height=0.5, padding=0.5)
+        self.add_data(df, height=0.5, padding=0.6)
 
     def add_data_below(self, df):
         """
