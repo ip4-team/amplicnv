@@ -36,8 +36,18 @@ def chromosome_collections(df, y_positions, height, **kwargs):
 
 class Ideogram(object):
     def __init__(self, file: str = None, chroms: list = None, chrom_height: float = 1,
-                 chrom_spacing: float = 1.5, fig_size: tuple = (6, 8),
-                 colors: dict = None):
+                 chrom_spacing: float = 1.5, fig_size: tuple = (6, 8), colors: dict = None):
+        """
+        Keyword arguments
+        :param file: file to load chromosome bands data. BED format with 'chrom', 'start', 'end', 'name', and 'gieStain'
+        as columns. First line is skipped. Default: 'cytoBand' table from https://genome.ucsc.edu/cgi-bin/hgTables.
+        :param chroms: plot only chromosomes that are in this list.
+        Default: ['chr%s' % i for i in list(range(1, 23)) + ['M', 'X', 'Y']]
+        :param chrom_height: height of each ideogram
+        :param chrom_spacing: spacing between consecutive ideogram
+        :param fig_size: width and height in inches
+        :param colors: colors for different chromosome stains
+        """
 
         self.chrom_height = chrom_height
         self.chrom_spacing = chrom_spacing
@@ -106,6 +116,14 @@ class Ideogram(object):
 
         return fig, ax
 
+    def save(self, filename: str, **kwargs):
+        """
+        Save ideograms in a file
+        :param filename: filename
+        :param kwargs: are passed to pyplot.savefig
+        """
+        self.fig.savefig(filename, **kwargs)
+
     def show(self):
         plt.show(self.fig)
 
@@ -122,6 +140,16 @@ class Ideogram(object):
 
     def add_data(self, df: pandas.DataFrame, height: float = 0.5, padding: float = 0.1,
                  color: str = '#2243a8', alpha: float = 0.5, linewidths: float = 0, **kwargs):
+        """
+        Add (genomic) data in the plot
+        :param df: data
+        :param height: height of genomic track. Should be smaller than 'chrom_spacing'
+        :param padding: padding between the top of a genomic track and its corresponding ideogram
+        :param color: track's color. It will be used in case 'colors' not in df.columns
+        :param alpha: alpha value used for blending
+        :param linewidths: line widths
+        :param kwargs: are passed to BrokenBarHCollection
+        """
         df = self.filter_by_chroms(df)
 
         if'colors' not in df.columns:
@@ -137,7 +165,15 @@ class Ideogram(object):
             self.ax.add_collection(collection)
 
     def add_data_above(self, df: pandas.DataFrame):
+        """
+        Wrapper for adding data above ideograms
+        :param df: data
+        """
         self.add_data(df, height=0.5, padding=0.5)
 
     def add_data_below(self, df):
+        """
+        Wrapper for adding data below ideograms
+        :param df: data
+        """
         self.add_data(df, height=-0.5, padding=-0.1)
