@@ -558,15 +558,15 @@ class VCFTest(cdf):
                 chrom, chromStart, chromEnd = Region(block['id']).as_tuple
                 all_blocks.append([chrom, chromStart, chromEnd, block['id'],
                                    bimodal, score, centers_diff])
-        return self.__IQR(DataFrame(all_blocks, columns=columns))
+        return self.__iqr(DataFrame(all_blocks, columns=columns))
 
-    def __IQR(self, blocks):
+    def __iqr(self, blocks: DataFrame):
         """
         compute IQR on silhouette score and centers
         difference for each block
 
         Parameters:
-             blocks (list): potential CNV bocks
+             blocks: potential CNV bocks
         """
         print('Working on clustering (BAF) data')
         all_blocks = []
@@ -586,7 +586,7 @@ class VCFTest(cdf):
                     above_range(row.diff, m_diff, ca_diff, interval_range) and
                     row.isbimodal)
             all_blocks.append(block_data)
-        return DataFrame(all_blocks, columns=columns)
+        return self._call(DataFrame(all_blocks, columns=columns))
 
     @overrides(cdf)
     def _make_subplots(self, cnv, value_column='baf',
@@ -601,6 +601,11 @@ class VCFTest(cdf):
                                              pos_column, cnvlike=cnvlike,
                                              plotting=True, layout=layout)
         return traces, titles, layout
+
+    @overrides(cdf)
+    def _call(self, df):
+        df['call'] = df['isbimodal'].apply(lambda x: 'gain' if True else 'loss')
+        return df
 
 
 @validstr('filename', empty_allowed=False)

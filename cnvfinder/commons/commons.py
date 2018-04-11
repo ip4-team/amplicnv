@@ -310,22 +310,23 @@ class ChromDF(metaclass=ABCMeta):
             i = 0
             while i < len(rows):
                 chrom = rows[i].chrom
-                chromStart = rows[i].chromStart
-                chromEnd = rows[i].chromEnd
+                chrom_start = rows[i].chromStart
+                chrom_end = rows[i].chromEnd
+                call = rows[i].call
                 j = i + 1
-                while j < len(rows) and rows[j].chromStart < chromEnd:
-                    chromEnd = rows[j].chromEnd
+                while j < len(rows) and rows[j].chromStart < chrom_end and rows[j].call == call:
+                    chrom_end = rows[j].chromEnd
                     j += 1
                 if todf:
-                    unified_blocks.append([chrom, chromStart, chromEnd])
+                    unified_blocks.append([chrom, chrom_start, chrom_end, rows[i].region, rows[i].call])
                 else:
                     unified_blocks.append(['{}:{}-{}'.format(chrom,
-                                                             chromStart,
-                                                             chromEnd)])
+                                                             chrom_start,
+                                                             chrom_end)])
                 i = j
         if todf:
             return DataFrame(unified_blocks,
-                             columns=['chrom', 'chromStart', 'chromEnd'])
+                             columns=['chrom', 'chromStart', 'chromEnd', 'region', 'call'])
         else:
             return unified_blocks
 
@@ -346,18 +347,19 @@ class ChromDF(metaclass=ABCMeta):
         """
         cnvs, potential_cnvs = self._filter_blocks(blocks, todf=True)
         cnv_blocks = []
+        columns = list(blocks.columns[0:4]).append('call')
 
         print('Analyzing blocks...')
         for group in self.iterchroms(df=cnvs):
             for row in group['df'].itertuples():
-                cnv_blocks.append([row[1], row[2], row[3]])
+                cnv_blocks.append(row)
                 pot = potential_cnvs[(potential_cnvs.chrom == row.chrom) &
                                      (potential_cnvs.chromEnd >= row.chromStart - maxdist) &
                                      (potential_cnvs.chromStart <= row.chromEnd + maxdist)]
-                for row in pot.itertuples():
-                    cnv_blocks.append([row[1], row[2], row[3]])
+                for r in pot.itertuples():
+                    cnv_blocks.append(r)
         cnv_blocks.sort(key=lambda x: (x[0], x[1], x[2]))
-        return DataFrame(cnv_blocks, columns=blocks.columns[0:3])
+        return DataFrame(cnv_blocks, columns=columns)
 
     def _filter_blocks(self, blocks, todf=False):
         """
@@ -484,4 +486,8 @@ class ChromDF(metaclass=ABCMeta):
 
     @abstractmethod
     def _createdf(self):
+        pass
+
+    @abstractmethod
+    def _call(self, df: DataFrame) -> DataFrame:
         pass

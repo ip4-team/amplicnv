@@ -3,6 +3,7 @@
 import pandas
 from matplotlib import pyplot as plt
 from matplotlib.collections import BrokenBarHCollection
+from matplotlib.patches import Patch
 
 from cnvfinder.utils import resource_path_or_exit
 
@@ -11,9 +12,10 @@ from cnvfinder.utils import resource_path_or_exit
 """
 
 
-def chromosome_collections(df, y_positions, height, **kwargs):
+def chromosome_collections(df, y_positions, height, to_log=False, **kwargs):
     """
     yields BrokenBarHCollection of features that can be added to an Axes object
+    :param to_log: whether to log info
     :param df:
     :param y_positions:
     :param height:
@@ -25,7 +27,8 @@ def chromosome_collections(df, y_positions, height, **kwargs):
         del_width = True
         df['width'] = df['chromEnd'] - df['chromStart']
     for chrom, group in df.groupby('chrom'):
-        print(chrom)
+        if to_log:
+            print(chrom)
         yrange = (y_positions[chrom], height)
         xranges = group[['chromStart', 'width']].values
         yield BrokenBarHCollection(
@@ -36,7 +39,8 @@ def chromosome_collections(df, y_positions, height, **kwargs):
 
 class Ideogram(object):
     def __init__(self, file: str = None, chroms: list = None, chrom_height: float = 1,
-                 chrom_spacing: float = 1.5, fig_size: tuple = (6, 8), colors: dict = None):
+                 chrom_spacing: float = 1.5, fig_size: tuple = (6, 8), colors: dict = None,
+                 to_log=False):
         """
         Keyword arguments
         :param file: file to load chromosome bands data. BED format with 'chrom', 'chromStart', 'chromEnd', 'name',
@@ -48,8 +52,10 @@ class Ideogram(object):
         :param chrom_spacing: spacing between consecutive ideogram
         :param fig_size: width and height in inches
         :param colors: colors for different chromosome stains
+        :param to_log: whether to print log info
         """
 
+        self.to_log = to_log
         self.chrom_height = chrom_height
         self.chrom_spacing = chrom_spacing
         self.fig_size = fig_size
@@ -106,7 +112,8 @@ class Ideogram(object):
         fig = plt.figure(figsize=self.fig_size)
         ax = fig.add_subplot(111)
 
-        print("adding ideograms...")
+        if self.to_log:
+            print("adding ideograms...")
         for collection in chromosome_collections(self.df, self.chrom_ybase, self.chrom_height, edgecolors=(0, 0, 0)):
             ax.add_collection(collection)
 
@@ -158,7 +165,7 @@ class Ideogram(object):
         """
         df = self.filter_by_chroms(df)
 
-        if'colors' not in df.columns:
+        if 'colors' not in df.columns:
             df['colors'] = color
 
         data_ybase = {}
@@ -170,16 +177,28 @@ class Ideogram(object):
                                                  alpha=alpha, linewidths=linewidths, **kwargs):
             self.ax.add_collection(collection)
 
-    def add_data_above(self, df: pandas.DataFrame):
+    def add_data_above(self, df: pandas.DataFrame, color: str = None):
         """
         Wrapper for adding data above ideograms
+        :param color: bars color
         :param df: data
         """
-        self.add_data(df, height=0.5, padding=0.6)
+        self.add_data(df, height=0.5, padding=0.6, color=color)
 
-    def add_data_below(self, df):
+    def add_data_below(self, df: pandas.DataFrame, color: str = None):
         """
         Wrapper for adding data below ideograms
+        :param color: bars color
         :param df: data
         """
-        self.add_data(df, height=-0.5, padding=-0.1)
+        self.add_data(df, height=-0.5, padding=-0.1, color=color)
+
+    def add_legend(self, to_patches: list, loc='lower right', **kwargs):
+        """
+        Create a legend base on to_patches list
+        :param to_patches: list of dict -> {color: color, label: label}
+        :param loc: legend location
+        :param kwargs: are passed to pyplot.legend
+        """
+        patches = [Patch(color=p['color'], label=p['label']) for p in to_patches]
+        self.fig.legend(handles=patches, loc=loc, **kwargs)
