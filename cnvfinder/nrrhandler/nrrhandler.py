@@ -832,7 +832,7 @@ class NRRTest(cdf):
 
     @overrides(cdf)
     def _call(self, df):
-        df['call'] = df['median'].apply(lambda x: 'loss' if x < 1 else 'gain')
+        df['call'] = df['median'].apply(lambda x: 'loss' if x < self.normal_ratio else 'gain')
         return df
 
 
