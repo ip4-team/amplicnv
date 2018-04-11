@@ -413,3 +413,26 @@ def resource_path_or_exit(filename: str):
     if not resource_exists:
         sys.exit('\"{}\" not found! Was it added in setup.py?'.format(filename))
     return pkg_resources.resource_filename(get_package_name(), filename)
+
+
+def sortable_chromosome(chromosome: str) -> str:
+    """
+    Format a chromosome, so its sortable
+    :param chromosome: chromosome itself
+    :return: formatted chromosome
+    """
+    try:
+        return '{:0>2}'.format(int(chromosome))
+    except ValueError:
+        return chromosome
+
+
+def sort_chroms(chrom_list: list) -> list:
+    """
+    Sort chromosomes in a list
+    :param chrom_list: list itself
+    :return: sorted list
+    """
+    to_sort = [[sortable_chromosome(chrom.strip('chr')), chrom] for chrom in chrom_list]
+    to_sort.sort(key=lambda x: x[0])
+    return [chrom[-1] for chrom in to_sort]

@@ -588,6 +588,7 @@ class NRRTest(cdf):
         self.path2plot = appenddir(self.path, 'plots/bam/ratios')
         self.path2table = appenddir(self.path, 'tables/bam')
         self.path2plotcnv = appenddir(self.path, 'plots/bam/cnv')
+        self.normal_ratio = 1
         createdir(self.path2plot)
         createdir(self.path2plotcnv)
         createdir(self.path2table)
@@ -821,13 +822,18 @@ class NRRTest(cdf):
 
             for block in self.iterblocks(group, size=self.size, step=self.step):
                 med_ratio = self.filter(block['df']).loc[:, 'ratio'].median()
-                chrom, chromStart, chromEnd = Region(block['id']).as_tuple
-                block_data = [chrom, chromStart, chromEnd, block['id'], med_ratio]
+                chrom, chrom_start, chrom_end = Region(block['id']).as_tuple
+                block_data = [chrom, chrom_start, chrom_end, block['id'], med_ratio]
                 for i, interval_range in enumerate(ranges):
                     block_data.append(above_range(med_ratio, m, ca, interval_range) or
                                       below_range(med_ratio, m, cb, interval_range))
                 all_blocks.append(block_data)
-        return DataFrame(all_blocks, columns=columns)
+        return self._call(DataFrame(all_blocks, columns=columns))
+
+    @overrides(cdf)
+    def _call(self, df):
+        df['call'] = df['median'].apply(lambda x: 'loss' if x < 1 else 'gain')
+        return df
 
 
 @validstr('filename', empty_allowed=False)
