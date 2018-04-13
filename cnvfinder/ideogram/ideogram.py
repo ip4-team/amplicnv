@@ -39,7 +39,7 @@ def chromosome_collections(df, y_positions, height, to_log=False, **kwargs):
 
 class Ideogram(object):
     def __init__(self, file: str = None, chroms: list = None, chrom_height: float = 1,
-                 chrom_spacing: float = 1.5, fig_size: tuple = (6, 8), colors: dict = None,
+                 chrom_spacing: float = 1.5, fig_size: tuple = None, colors: dict = None,
                  to_log=False):
         """
         Keyword arguments
@@ -49,7 +49,7 @@ class Ideogram(object):
         :param chroms: plot only chromosomes that are in this list.
         Default: ['chr%s' % i for i in list(range(1, 23)) + ['M', 'X', 'Y']]
         :param chrom_height: height of each ideogram
-        :param chrom_spacing: spacing between consecutive ideogram
+        :param chrom_spacing: spacing between consecutive ideograms
         :param fig_size: width and height in inches
         :param colors: colors for different chromosome stains
         :param to_log: whether to print log info
@@ -58,9 +58,9 @@ class Ideogram(object):
         self.to_log = to_log
         self.chrom_height = chrom_height
         self.chrom_spacing = chrom_spacing
-        self.fig_size = fig_size
         self._colors = self.colors = colors
         self._chroms = self.chroms = chroms
+        self._fig_size = self.fig_size = fig_size
         self.file = file
         self.__pgk_bands_file = 'data/cytoBand.txt'
         self.df = self.load_bands()
@@ -101,6 +101,17 @@ class Ideogram(object):
             self._chroms = ['chr%s' % i for i in list(range(1, 23)) + ['M', 'X', 'Y']]
         else:
             self._chroms = value
+
+    @property
+    def fig_size(self):
+        return self._fig_size
+
+    @fig_size.setter
+    def fig_size(self, value):
+        if value is None:
+            self._fig_size = (12, len(self.chroms))
+        else:
+            self._fig_size = value
 
     def add_chromosomes(self):
 

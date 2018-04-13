@@ -4,6 +4,7 @@
 @author: valengo
 """
 import argparse
+import pandas
 from enum import Enum
 
 import sys
@@ -45,3 +46,14 @@ def getattr_by(arg: Enum, args: argparse.Namespace):
         return getattr(args, name.replace('-', '_'))
     except AttributeError:
         sys.exit(Strings.parsing_error.value.format(name, Strings.issue_url.value))
+
+
+def load_table(filename: str):
+    return pandas.read_table(filename)
+
+
+def parse_legend(legends: list):
+    parsed = []
+    for legend in legends:
+        parsed.append(dict(label=legend[0], color='#{}'.format(legend[-1])))
+    return parsed
