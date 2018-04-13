@@ -11,12 +11,13 @@ from collections import defaultdict
 
 from cnvfinder import CNVTest, CNVConfig
 from cnvfinder.bedloader import ROI
+from cnvfinder.ideogram import Ideogram
 from cnvfinder.nrrhandler import NRR, NRRList, NRRTest, NRRConfig
 from cnvfinder.utils.utils import bedwrite
 from cnvfinder.vcfhandler import VCF, VCFList, VCFTest, VCFConfig
 from cnvfinder.wrapper.argdesc import ArgDesc, Strings
 from cnvfinder.wrapper.utils import get_arg_name_from_enum, get_arg_help_from_enum, getattr_by, parse_sub_command, \
-    create_parser
+    create_parser, load_table, parse_legend
 
 
 class CNVFinderWrapper(object):
@@ -370,6 +371,90 @@ class CNVFinderWrapper(object):
             args = parse_sub_command(parser)
 
             CNVConfig(getattr_by(ArgDesc.cfg_file, args))
+
+    class Ideogram(_Command):
+        def __init__(self, outer_instance):
+            super().__init__(self.__class__.__name__.lower(), Strings.ideogram_description.value, outer_instance)
+
+        def run(self):
+            parser = create_parser(self.description, command=self.name)
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.file), type=str,
+                                help=get_arg_help_from_enum(ArgDesc.file))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.chroms), nargs='+', type=str,
+                                default=['chr%s' % i for i in list(range(1, 23)) + ['M', 'X', 'Y']],
+                                help=get_arg_help_from_enum(ArgDesc.chroms))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.chrom_height), type=float, default=1,
+                                help=get_arg_help_from_enum(ArgDesc.chrom_height))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.chrom_spacing), type=float, default=1.5,
+                                help=get_arg_help_from_enum(ArgDesc.chrom_spacing))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.fig_size), type=float, nargs=2, default=None,
+                                help=get_arg_help_from_enum(ArgDesc.fig_size))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.legend), nargs=2, action='append', default=None,
+                                help=get_arg_help_from_enum(ArgDesc.legend))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.above_track_file), type=str,
+                                help='{}. {}'.format(Strings.ideo_track_file.value,
+                                                     get_arg_help_from_enum(ArgDesc.above_track_file)))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.above_track_height), type=float, default=0.5,
+                                help=get_arg_help_from_enum(Strings.ideo_track_height))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.above_track_padding), type=float, default=0.6,
+                                help=get_arg_help_from_enum(ArgDesc.above_track_padding))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.above_track_color), type=str, default='#0ab26c',
+                                help=get_arg_help_from_enum(ArgDesc.above_track_color))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.above_track_alpha), type=float, default=0.5,
+                                help=get_arg_help_from_enum(ArgDesc.above_track_alpha))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.above_track_linewidths),
+                                help=get_arg_help_from_enum(ArgDesc.above_track_linewidths))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.below_track_file), type=str,
+                                help='{}. {}'.format(Strings.ideo_track_file.value,
+                                                     get_arg_help_from_enum(ArgDesc.below_track_file)))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.below_track_height), type=float, default=-0.5,
+                                help=get_arg_help_from_enum(Strings.ideo_track_height))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.below_track_padding), type=float, default=-0.1,
+                                help=get_arg_help_from_enum(ArgDesc.below_track_padding))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.below_track_color), type=str, default='#cc1231',
+                                help=get_arg_help_from_enum(ArgDesc.below_track_color))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.below_track_alpha), type=float, default=0.5,
+                                help=get_arg_help_from_enum(ArgDesc.below_track_alpha))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.below_track_linewidths),
+                                help=get_arg_help_from_enum(ArgDesc.below_track_linewidths))
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.output), type=str, required=True,
+                                help=get_arg_help_from_enum(ArgDesc.output))
+
+            args = parse_sub_command(parser)
+
+            # load chromosomes
+            fig_size = getattr_by(ArgDesc.fig_size, args)
+            fig_size = tuple(fig_size) if fig_size is not None else fig_size
+            ideo = Ideogram(file=getattr_by(ArgDesc.file, args),
+                            chroms=getattr_by(ArgDesc.chroms, args),
+                            chrom_height=getattr_by(ArgDesc.chrom_height, args),
+                            chrom_spacing=getattr_by(ArgDesc.chrom_spacing, args),
+                            fig_size=fig_size)
+            # add data above
+            above_file = getattr_by(ArgDesc.above_track_file, args)
+            if above_file is not None:
+                ideo.add_data(load_table(getattr_by(ArgDesc.above_track_file, args)),
+                              height=getattr_by(ArgDesc.above_track_height, args),
+                              padding=getattr_by(ArgDesc.above_track_padding, args),
+                              color=getattr_by(ArgDesc.above_track_color, args),
+                              alpha=getattr_by(ArgDesc.above_track_alpha, args),
+                              linewidths=getattr_by(ArgDesc.above_track_linewidths, args))
+
+            # add data below
+            above_file = getattr_by(ArgDesc.below_track_file, args)
+            if above_file is not None:
+                ideo.add_data(load_table(getattr_by(ArgDesc.below_track_file, args)),
+                              height=getattr_by(ArgDesc.below_track_height, args),
+                              padding=getattr_by(ArgDesc.below_track_padding, args),
+                              color=getattr_by(ArgDesc.below_track_color, args),
+                              alpha=getattr_by(ArgDesc.below_track_alpha, args),
+                              linewidths=getattr_by(ArgDesc.below_track_linewidths, args))
+
+            legend = getattr_by(ArgDesc.legend, args)
+            if legend is not None:
+                ideo.add_legend(parse_legend(legend))
+
+            ideo.save(getattr_by(ArgDesc.output, args))
 
 
 def main():
