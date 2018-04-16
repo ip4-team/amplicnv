@@ -55,7 +55,7 @@ class Strings(Enum):
     ideo_track_alpha = 'Alpha value used for blending'
     ideo_track_linewidths = 'Track\'s line widths'
     ideo_legend = 'Add a legend entry to the figure {label color}. This parameter can be passed multiple times: ' \
-                  '--legend gain #0ab26c --legend loss cc1231 '
+                  '--legend gain 0ab26c --legend loss cc1231 '
 
     # errors
     wrong_command = 'Class \"{}\" is not eligible for a command. Does it extend {} class?'
