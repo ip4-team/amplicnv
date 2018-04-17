@@ -12,13 +12,13 @@ from cnvfinder.utils import resource_path_or_exit
 """
 
 
-def chromosome_collections(df, y_positions, height, to_log=False, **kwargs):
+def chromosome_collections(df: pandas.DataFrame, y_positions: dict, height: float, to_log: bool=False, **kwargs):
     """
-    yields BrokenBarHCollection of features that can be added to an Axes object
-    :param to_log: whether to log info
-    :param df:
-    :param y_positions:
-    :param height:
+    yields BrokenBarHCollection of features that can be added to an Axes object :param to_log: whether to log info
+    :param df: must at least have columns ['chrom', 'chromStart', 'chromEnd', 'colors']. If no column 'width',
+    it will be calculated from start/end
+    :param y_positions: keys are chromosomes, value are y-value at which to anchor the BrokenBarHCollection
+    :param height: height of each BrokenBarHCollection
     :param kwargs: are passed to BrokenBarHCollection
     :return:
     """
