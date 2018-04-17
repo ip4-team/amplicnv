@@ -37,6 +37,25 @@ class Strings(Enum):
                    'file1.vcf.gz --vcf-baseline file2.vcf.gz '
     vcf_test = 'Path to test sample vcf file'
     to_filter = 'whether to apply filters on variants'
+    ideo_file = 'Path to (BED) file where chromosome bands are listed. If none is passed, we use \"CytoBand\" table ' \
+                'from https://genome-euro.ucsc.edu/cgi-bin/hgTables '
+    ideo_chroms = 'Create ideograms only for chromosomes that are in this list'
+    ideo_chrom_height = 'Height of each ideogram'
+    ideo_chrom_spacing = 'Spacing between consecutive ideograms'
+    ideo_fig_size = 'Resulting figure (ideogram plot) size. Default will be defined as: 12 for width and 1 * number ' \
+                    'of chromosomes for height. For example: 12 1 '
+    ideo_track_file = 'Path to (BED) file where genomic data is listed'
+    ideo_above = 'Each track is plotted above its respective ideogram'
+    ideo_below = 'Each track is plotted below its respective ideogram'
+    ideo_track_height = 'Height of genomic track. Its absolute value should be smaller than the space between ' \
+                        'consecutive ideograms '
+    ideo_track_padding = 'Padding between the top of a genomic track and its corresponding ideogram'
+    ideo_track_color = 'Track\'s color. It will be used in case \'colors\' is not defined in the corresponding ' \
+                       'track\'s file '
+    ideo_track_alpha = 'Alpha value used for blending'
+    ideo_track_linewidths = 'Track\'s line widths'
+    ideo_legend = 'Add a legend entry to the figure {label color}. This parameter can be passed multiple times: ' \
+                  '--legend gain 0ab26c --legend loss cc1231 '
 
     # errors
     wrong_command = 'Class \"{}\" is not eligible for a command. Does it extend {} class?'
@@ -60,6 +79,7 @@ class Strings(Enum):
     vcfcompare_description = 'Compare a test sample with a baseline of samples considering B-allele frequency and ' \
                              'other variant data'
     bedloader_description = 'Define targets from amplicons located in a BED file'
+    ideogram_description = 'Create ideograms for visualization of chromosomes and other genomic tracks'
     cfg = '\n\tpassing arguments using a configuration file.\n\tSee example: ' \
           'http://cnvfinder.readthedocs.io/en/latest/#configuration-file '
     no_rd = 'Do not apply read depth data'
@@ -121,3 +141,23 @@ class ArgDesc(Enum):
 
     # cfg
     cfg_file = Strings.cfg_file.value
+
+    # ideogram
+    file = Strings.ideo_file.value
+    chroms = Strings.ideo_chroms.value
+    chrom_height = Strings.ideo_chrom_height.value
+    chrom_spacing = Strings.ideo_chrom_spacing.value
+    fig_size = Strings.ideo_fig_size.value
+    legend = Strings.ideo_legend.value
+    above_track_file = Strings.ideo_above.value
+    above_track_height = Strings.ideo_track_height.value
+    above_track_padding = Strings.ideo_track_padding.value
+    above_track_color = Strings.ideo_track_color.value
+    above_track_alpha = Strings.ideo_track_alpha.value
+    above_track_linewidths = Strings.ideo_track_linewidths.value
+    below_track_file = Strings.ideo_below.value + ' '  # TODO change our solution for "strings" and so on
+    below_track_height = Strings.ideo_track_height.value + ' '
+    below_track_padding = Strings.ideo_track_padding.value + ' '
+    below_track_color = Strings.ideo_track_color.value + ' '
+    below_track_alpha = Strings.ideo_track_alpha.value + ' '
+    below_track_linewidths = Strings.ideo_track_linewidths.value + ' '

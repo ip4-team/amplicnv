@@ -12,13 +12,14 @@ from codecs import open
 from os import path
 
 here = path.abspath(path.dirname(__file__))
+name = 'cnvfinder'
 
 # get the long description from the README file
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='cnvfinder',
+    name=name,
 
     # versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
@@ -75,7 +76,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['pysam', 'pandas', 'plotly', 'numpy', 'scikit-learn', 'scipy', 'numexpr'],
+    install_requires=['pysam', 'pandas', 'plotly', 'numpy', 'scikit-learn', 'scipy', 'numexpr', 'matplotlib'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
@@ -91,9 +92,9 @@ setup(
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
-    # package_data={
-    #    'sample': ['package_data.dat'],
-    # },
+    package_data={
+       name: ['data/*.txt'],
+    },
 
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:
