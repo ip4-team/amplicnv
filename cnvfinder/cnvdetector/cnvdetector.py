@@ -4,7 +4,8 @@
 
 @author: valengo
 """
-from cnvfinder.utils.utils import bedwrite
+from cnvfinder.ideogram import Ideogram
+from cnvfinder.utils.utils import bedwrite, sort_chroms
 from ..utils import ConfigfileParser
 from ..nrrhandler import NRRConfig
 from ..vcfhandler import VCFConfig
@@ -32,6 +33,7 @@ class CNVTest(object):
         self.nrrtest = nrrtest
         self.vcftest = vcftest
         self.cnvdf = None
+        self.blocks = None
         self.path = path
         self.path2plotcnv = appenddir(self.path, 'plots/bam-vcf')
         self.path2bed = appenddir(self.path, 'bed')
@@ -134,6 +136,35 @@ class CNVTest(object):
                         chroms.extend(block['chrom'].unique())
                 file.write(cnv.format(', '.join(set(chroms))))
 
+    def create_ideogram(self):
+        print('Creating chromosome ideograms...')
+        chroms = sort_chroms(self.cnvdf[0].unique())
+        ideo = Ideogram(chroms=chroms)
+
+        gain = '#0ab26c'
+        loss = '#cc1231'
+
+        # cnvs found using ratios
+        if self.nrrtest is not None:
+            df = self.blocks[0]
+            df_loss = df[df.call == 'loss']
+            df_gain = df[df.call == 'gain']
+            if not df_gain.empty:
+                ideo.add_data_above(df_gain, color=gain)
+            if not df_loss.empty:
+                ideo.add_data_below(df_loss, color=loss)
+
+        # cnvs found using variant
+        if self.vcftest is not None and not self.blocks[-1].empty:
+            ideo.add_data_above(self.blocks[-1], color=gain)
+
+        # legend
+        legend = [dict(color=gain, label='gain'),
+                  dict(color=loss, label='loss')]
+        ideo.add_legend(legend)
+
+        ideo.save('{}/{}'.format(self.path, 'ideogram.png'))
+
 
 @validstr('filename', empty_allowed=False)
 class CNVConfig(object):
@@ -146,7 +177,7 @@ class CNVConfig(object):
         Parameters:
             filename (str): the configfile's name
             ratio (boolean): specify the usage of read depth data
-            vatiant (boolean): specify the usage of variant data
+            variant (boolean): specify the usage of variant data
         """
         self.filename = filename
         self.sections_params = {
@@ -168,4 +199,5 @@ class CNVConfig(object):
             self.cnvtest.blocks[-1].to_csv(vfname, sep='\t', index=False)
         self.cnvtest.save()
         self.cnvtest.summary()
+        self.cnvtest.create_ideogram()
         print('Done!')

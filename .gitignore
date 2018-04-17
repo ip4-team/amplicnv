@@ -6,7 +6,6 @@ venv
 *.bai
 *.bed
 *.idx
-*.txt
 *.html
 *.vcf
 *.gz
