@@ -5,8 +5,8 @@ CNVfinder's code documentation
    :maxdepth: 2
 
 
-cnvdetector module
-==================
+cnvdetector
+===========
 .. automodule:: cnvfinder.cnvdetector
 .. autoclass:: CNVTest
     :members:
@@ -14,8 +14,8 @@ cnvdetector module
     :members:
 
 
-nrrhandler module
-=================
+nrrhandler
+==========
 .. automodule:: cnvfinder.nrrhandler
 .. autoclass:: NRR
     :members:
@@ -28,8 +28,8 @@ nrrhandler module
 .. automethod:: cnvfinder.nrrhandler.readcount
 
 
-ideogram module
-===============
+ideogram
+========
 .. automodule:: cnvfinder.ideogram
 .. autoclass:: Ideogram
     :members:
