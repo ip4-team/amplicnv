@@ -217,7 +217,7 @@ class CNVFinderWrapper(object):
                               cnv_like_range=getattr_by(ArgDesc.cnv_like_range, args),
                               bins=getattr_by(ArgDesc.bins, args),
                               method=getattr_by(ArgDesc.method, args))
-            nrrtest.makeratio()
+            nrrtest.make_ratio()
             if nrrtest.ratios:
                 print('Creating plots at {}'.format(nrrtest.path2plot))
                 nrrtest.plot()

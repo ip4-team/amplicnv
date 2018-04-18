@@ -33,7 +33,7 @@ class GenericDescriptor(object):
         return self.setter(instance, value)
 
 
-def validstr(attr_name, empty_allowed=True):
+def validstr(attr_name: str, empty_allowed: str = True):
     """
     Check if a given attribute is a valid str
 

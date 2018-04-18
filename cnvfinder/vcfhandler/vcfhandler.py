@@ -430,9 +430,9 @@ class VCFTest(cdf):
                   {'id': 'chrom:chromStart-chromEnd', 'df': dataframe}
         """
         if df is None:
-            return self.creategroups(self.getview(mode=mode))
+            return self.create_groups(self.getview(mode=mode))
         else:
-            return self.creategroups(df)
+            return self.create_groups(df)
 
     def vcfplot(self, region=None, mode=None, filename=None,
                 auto_open=False):
@@ -592,7 +592,7 @@ class VCFTest(cdf):
     def _make_subplots(self, cnv, value_column='baf',
                        pos_column='pos', cnvlike=None):
         # define layout for x and y axis
-        layout = defaultdict(lambda: None)
+        layout = defaultdict(lambda: dict)
         layout['y'] = dict(title='BAFs', zeroline=False,
                            range=[0, 1])
         layout['x'] = dict(zeroline=False)

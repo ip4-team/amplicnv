@@ -6,6 +6,8 @@
 """
 
 from collections import defaultdict
+from typing import Union
+
 from ..utils import Region
 from ..utils import NumberProperty
 from pandas import DataFrame
@@ -24,12 +26,13 @@ class ChromDF(metaclass=ABCMeta):
     "chrom", "chromStart", and "chromEnd"
     """
 
-    def __init__(self, df):
+    def __init__(self, df: Union[DataFrame, None]):
         """
         Parameters:
             df (pandas.DataFrame): the dataframe itself
         """
-        self.df = df
+        self._df = self.df = df
+        self.ratios = []
 
     # properties
     size = NumberProperty('_size')
@@ -50,33 +53,17 @@ class ChromDF(metaclass=ABCMeta):
 
     maxdist = NumberProperty('_maxdist')
 
-    size = NumberProperty('_size')
-
-    step = NumberProperty('_step')
-
-    interval_range = NumberProperty('_interval_range')
-
     minread = NumberProperty('_minread')
 
     below_cutoff = NumberProperty('_below_cutoff')
 
     above_cutoff = NumberProperty('_above_cutoff')
 
-    maxdist = NumberProperty('_maxdist')
-
-    cnv_like_range = NumberProperty('_cnv_like_range')
-
     @property
     def mlabels(self):
         return ['chrom',
                 'chromStart',
                 'chromEnd']
-
-    @mlabels.setter
-    def mlabels(self, value):
-        self._mlabels = ['chrom',
-                         'chromStart',
-                         'chromEnd']
 
     @property
     def df(self):
@@ -112,9 +99,9 @@ class ChromDF(metaclass=ABCMeta):
             df (pandas.DataFrame): a pandas DataFrame
         """
         if df is None:
-            return self.creategroups(self.df)
+            return self.create_groups(self.df)
         else:
-            return self.creategroups(df)
+            return self.create_groups(df)
 
     def iterblocks(self, group, size=400, step=10):
         """
@@ -129,7 +116,8 @@ class ChromDF(metaclass=ABCMeta):
         """
         return self.__createblocks(group, size, step)
 
-    def getrows(self, df, region):
+    @staticmethod
+    def getrows(df, region):
         """
         Get df rows in region
 
@@ -190,18 +178,19 @@ class ChromDF(metaclass=ABCMeta):
         self.ratios = med_ratios
         self.df.loc[:, column] = med_ratios
 
-    def get_autossomic(self):
+    def get_autosomal(self):
         """
         Filter self.df by chromosomes, so rows where df.chrom == chrX or
         df.chrom == chrY are filtered out.
 
         Returns:
-            df (pandas.DataFrame) that contains data of autossomic chromosomes
+            df (pandas.DataFrame) that contains data of autosomal chromosomes
         """
         return self.df[(self.df.chrom != 'chrX') &
                        (self.df.chrom != 'chrY')]
 
-    def createid(self, block):
+    @staticmethod
+    def create_id(block: DataFrame) -> str:
         """
         Create block id for a given block. The id is based on the block
         region (where it starts and ends)
@@ -222,13 +211,12 @@ class ChromDF(metaclass=ABCMeta):
             chrom_end = tail.iloc[0, 2]
 
             return '{}:{}-{}'.format(chrom, chrom_start, chrom_end)
-        except AttributeError as error:
+        except AttributeError:
             print('Failed on getting group/block region!')
-        except IndexError as error:
+        except IndexError:
             print('Failed on getting group/block region!')
-        return None
 
-    def creategroups(self, df):
+    def create_groups(self, df):
         """
         create a list to iterate through self.df
         based on its 'chrom' column values. In other words, each group
@@ -246,7 +234,7 @@ class ChromDF(metaclass=ABCMeta):
         for i, chrom in enumerate(unique_chroms):
             group = defaultdict(lambda: None)
             group['df'] = df[df.chrom == chrom]
-            group['id'] = self.createid(group['df'])
+            group['id'] = self.create_id(group['df'])
             groups.append(group)
         return groups
 
@@ -399,7 +387,7 @@ class ChromDF(metaclass=ABCMeta):
         for i in range(0, len(group['df']) - size + step, step):
             block = defaultdict(lambda: None)
             block['df'] = group['df'].iloc[i:i + size, :]
-            block['id'] = self.createid(block['df'])
+            block['id'] = self.create_id(block['df'])
             blocks.append(block)
         return blocks
 
@@ -475,7 +463,7 @@ class ChromDF(metaclass=ABCMeta):
         return traces, titles
 
     @abstractmethod
-    def _make_subplots(self):
+    def _make_subplots(self, cnv: DataFrame, value_column: str = '', pos_column: str = '', cnvlike: DataFrame =None):
         pass
 
     @abstractmethod
