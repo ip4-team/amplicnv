@@ -22,7 +22,7 @@ from ..utils import appenddir
 @validstr('path', empty_allowed=False)
 class CNVTest(object):
     """
-    Detect and call CNVs based on read depth and/or variant info
+    **Detect and call CNVs based on read depth and/or variant info**
 
     :param NRRTest nrrtest: read depth data. When it's None, analysis employing "read depth" won't be performed
     :param vcftest: variant data. When it's None, analysis employing "read depth" won't be performed
@@ -173,7 +173,7 @@ class CNVTest(object):
 @validstr('filename', empty_allowed=False)
 class CNVConfig(object):
     """
-    A wrapper for CNVTest. This class loads test parameters from a configuration file
+    **A wrapper for CNVTest. This class loads test parameters from a configuration file**
 
     :param str filename: path to configuration file
     :param bool ratio: specify the usage of read depth data
