@@ -510,7 +510,7 @@ class NRRTest(cdf):
     :param int minread: minimum number of reads used to filter targets
     :param float below_cutoff: filter out data (ratios) below this cutoff
     :param float above_cutoff: filter out data (ratios) above this cutoff
-    :param int maxdist: maximum distance allowed of a cnv-like block, to its closest cnv block, for it be a cnv as well.
+    :param int maxdist: maximum distance allowed of a cnv-like block, to its closest cnv block, for it be a cnv as well
     :param float cnv_like_range: value to multiply interval_range by in order to detect cnv-like
     :param int bins: number of bins to use when plotting ratio data
     :param str method: method used in order to group rations when plotting

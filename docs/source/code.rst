@@ -4,7 +4,6 @@ CNVfinder's code documentation
 .. toctree::
    :maxdepth: 2
 
-
 cnvdetector
 ===========
 .. automodule:: cnvfinder.cnvdetector
@@ -12,7 +11,6 @@ cnvdetector
     :members:
 .. autoclass:: CNVConfig
     :members:
-
 
 nrrhandler
 ==========
@@ -27,6 +25,17 @@ nrrhandler
     :members:
 .. automethod:: cnvfinder.nrrhandler.readcount
 
+vcfhandler
+==========
+.. automodule:: cnvfinder.vcfhandler
+.. autoclass:: VCF
+    :members:
+.. autoclass:: VCFList
+    :members:
+.. autoclass:: VCFTest
+    :members:
+.. autoclass:: VCFConfig
+    :members:
 
 ideogram
 ========

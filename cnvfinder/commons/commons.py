@@ -21,16 +21,13 @@ from ..graphics import y_scatter
 
 class ChromDF(metaclass=ABCMeta):
     """
-    This class manages a pandas DataFrame that must have its three
-    first columns named as:
-    "chrom", "chromStart", and "chromEnd"
+    **This class manages a DataFrame that must have its three first columns named as:
+    "chrom", "chromStart", and "chromEnd"**
+
+    :param DataFrame df: the dataframe itself
     """
 
     def __init__(self, df: Union[DataFrame, None]):
-        """
-        Parameters:
-            df (pandas.DataFrame): the dataframe itself
-        """
         self._df = self.df = df
         self.ratios = []
 
@@ -70,13 +67,11 @@ class ChromDF(metaclass=ABCMeta):
         return self._df
 
     @df.setter
-    def df(self, value):
+    def df(self, value: Union[DataFrame, None]):
         """
-        Assure that df stick to the rules regarding
-        columns len and names.
+        Assure that df stick to the rules regarding columns len and names.
 
-        Parameters:
-            value (pandas.DataFrame): a pandas DataFrame
+        :param DataFrame value: the dataframe itself
         """
         if value is not None:
             columns = value.columns
@@ -90,44 +85,38 @@ class ChromDF(metaclass=ABCMeta):
                                      ', but "{}" was given.'.format(columns[i]))
         self._df = value
 
-    def iterchroms(self, df=None):
+    def iterchroms(self, df: DataFrame = None) -> list:
         """
         Create a list to iterate through self.df
-        based on its 'chrom' column values
 
-        Parameters:
-            df (pandas.DataFrame): a pandas DataFrame
+        :param DataFrame df: dataframe itself
+        :return: dataframe grouped by chromosomes
         """
         if df is None:
             return self.create_groups(self.df)
         else:
             return self.create_groups(df)
 
-    def iterblocks(self, group, size=400, step=10):
+    def iterblocks(self, group: DataFrame, size: int = 400, step: int = 10) -> defaultdict:
         """
-        Given a group (of variants), this method creates
-        blocks from it by creating (sliding) windows of a
+        Given a chromosome group, this method creates blocks from it by creating (sliding) windows of a
         given size at a given step
 
-        Parameters:
-            group (pandas.DataFrame): a pandas DataFrame
-            size (int): block size
-            step (int): distance between two consecutive blocks
+        :param Dataframe group: dataframe containing data
+        :param int size: block's size
+        :param int step: distance between two consecutive blocks
+        :return: dictionary of blocks {}
         """
         return self.__createblocks(group, size, step)
 
     @staticmethod
-    def getrows(df, region):
+    def getrows(df: DataFrame, region: str) -> DataFrame:
         """
-        Get df rows in region
+        Get dataframe rows in region
 
-        Parameters:
-            df (pandas.DataFrame): pandas DataFrame
-            region (str): the region itself. It must stick to the format:
-             chrom:chromStart-chromEnd
-
-        Returns:
-            rows (pandas.Dataframe)
+        :param DataFrame df: dataframe itself
+        :param str region: it should be in the form: chr1:10000-90000
+        :return: a new dataframe containing only rows within region
         """
         ras_tuple = Region(region).as_tuple
         if ras_tuple:
@@ -143,19 +132,13 @@ class ChromDF(metaclass=ABCMeta):
             return rows
         return df
 
-    def getin(self, region=None, column=None):
+    def getin(self, region: str = None, column: str = None) -> Union[DataFrame, list, None]:
         """
         Get self.df values in region and/or column
 
-        Paramters:
-            region (str): the region itself. It must stick to the format:
-             chrom:chromStart-chromEnd
-            column (str): column name
-
-        Returns:
-            rows (pandas.DataFrame): in case column is None
-            list(rows) (list): in case column is not None
-
+        :param str region: it should be in the form: chr1:10000-90000
+        :param str column: column's name
+        :return: None if no data is found; a dataframe in case column is None; a list if column is not None
         """
         rows = self.getrows(self.df, region)
         if rows is not None and column:
@@ -163,13 +146,12 @@ class ChromDF(metaclass=ABCMeta):
         else:
             return rows
 
-    def medfilter(self, column, kernel_size=9):
+    def medfilter(self, column: str, kernel_size: int = 9):
         """
-        Apply median filter on self.df column
+        Apply median filter on self.df column. Values are stored at this very same column
 
-        Parameters:
-            column (str): column name (where to apply median filter)
-            kernel_size (int): kernel size for median filter.
+        :param str column: column to lookup for values that will be median filtered
+        :param int kernel_size: median filter kernel's size
         """
         med_ratios = []
         for group in self.iterchroms():
@@ -216,7 +198,7 @@ class ChromDF(metaclass=ABCMeta):
         except IndexError:
             print('Failed on getting group/block region!')
 
-    def create_groups(self, df):
+    def create_groups(self, df) -> list:
         """
         create a list to iterate through self.df
         based on its 'chrom' column values. In other words, each group
