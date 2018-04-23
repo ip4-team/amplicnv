@@ -37,6 +37,12 @@ vcfhandler
 .. autoclass:: VCFConfig
     :members:
 
+bedloader
+=========
+.. automodule:: cnvfinder.bedloader
+.. autoclass:: ROI
+    :members:
+
 ideogram
 ========
 .. automodule:: cnvfinder.ideogram

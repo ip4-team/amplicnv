@@ -206,7 +206,6 @@ class NRR(object):
 
     def save(self, filename: str = None):
         """
-
         Save a single NRR on a text file
 
         :param str filename: path to output
@@ -278,7 +277,6 @@ class NRR(object):
 
     def __count_pools(self):
         """
-
         Count number of reads per pool.
         This method is used when loading a NRR from a file
         """
@@ -318,7 +316,6 @@ class NRR(object):
 
     def __label_targets(self, iqr_range: float = 1.5, std_range: float = 1.5, mode: str = 'normalized') -> list:
         """
-
         Label targets considering IQR on counters (normalized or not - user's choice) for discovering whether a target
         is in the lower (-) quartile, upper (+) quartile, or middle (o)
 

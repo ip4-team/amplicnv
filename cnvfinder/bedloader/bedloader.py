@@ -5,51 +5,51 @@ Created on Mon Oct 10 19:35:14 2016
 
 @author: roberto
 """
-
-import pandas
+from typing import Union
+from pandas import DataFrame
 from ..utils import Region
 
 
-# Helper functions
-def ntuple(string):
+def ntuple(string: str) -> tuple:
     """
-    Return a tuple of integers from a string of comma-separated integers.
-    Defaults to string(s) if this fails.
+    Return a tuple of integers from a string of comma-separated integers. When casting a substring to a int fails,
+    it uses the substring itself
+
+    :param str string: string of comma-separated integers
+    :return: tuple of int
     """
     return tuple([maybeint(number) for number in string.strip().split(',')])
 
 
-def maybeint(string):
+def maybeint(string: str) -> Union[str, int]:
     """
-    Try to cast a string to int. Return a string if this fails.
-    """
+    Try to cast a string to a int
 
+    :param str string: to cast
+    :return: int(string) or string in case cast fails
+    """
     try:
         return int(string)
     except ValueError:
         return string
 
 
-# Main classes
 class ROI(object):
     """
-    This class stores "regions of interest" in the .bed file.
-    self.amplicons is a list of Amplicon objects.
-    self.targets is a pandas.DataFrame of valid targets for CNV analysis.
+    This class stores "regions of interest" in the .bed file
+
+    - self.amplicons is a list of Amplicon objects
+    - self.targets is a DataFrame of valid targets for CNV analysis
+
+    :param str bedfile: path to file in which sequencing amplicons are listed (BED)
+    :param str region: should be in the form: chr:start-end, for example: chr1:10000-90000" or "chr1:10000" or "chr1
+    :param int spacing: is the number of nucleotides to ignore at amplicon start and end, to avoid overlapping reads
+    :param int mindata: is the minimum number of nucleotides for a valid target
+    :param int maxpool: is the maximum number of origin pools allowed for a valid target
     """
 
-    def __init__(self, bedfile, region=None, spacing=20,
-                 mindata=50, maxpool=None):
-        """
-        Load amplicons and targets for CNV analysis.
-        "bedfile" is the path to the .bed file.
-        "region" should be in the form: chr:start-end, for example:
-        chr1:10000-90000" or "chr1:10000" or "chr1"
-        "spacing" is the number of nucleotides to ignore at amplicon start and
-            end, to avoid overlapping reads.
-        "mindata" is the minimum number of nucleotides for a valid target.
-        """
-
+    def __init__(self, bedfile: str, region: str = None, spacing: int = 20,
+                 mindata: int = 50, maxpool: int = None):
         # spacing should be >= 0
         if not type(spacing) == int or spacing < 0:
             print("ROI: Invalid spacing: {0}; defaulting to 0".format(spacing))
@@ -77,20 +77,26 @@ class ROI(object):
                 lines = file.readlines()
         except FileNotFoundError as error:
             print(error)
-            return None
+            return
         self.amplicons = self.load_amplicons(lines, region, maxpool)
         if self.amplicons:
             self.targets = self.define_targets(spacing, mindata)
         else:
-            return None
+            return
 
     def __repr__(self):
         return 'ROI("{0}"; {1} amplicons, {2} targets)'.format(
             self.source, len(self.amplicons), len(self.targets))
 
-    def load_amplicons(self, lines, region, maxpool):
+    @staticmethod
+    def load_amplicons(lines: list, region: str, maxpool: int) -> list:
         """
-        Return a sorted list of amplicons.
+        Return a sorted list of amplicons
+
+        :param list lines: list of lines loaded from bed file
+        :param str region: it should be in the form: chr1:10000-90000'
+        :param int maxpool: maximum number of origin pools allowed for a valid target
+        :return: sorted list of amplicons
         """
         print("Loading amplicons...")
         amplicons = []
@@ -122,35 +128,37 @@ class ROI(object):
         amplicons.sort(key=lambda x: (x.chromosome, x.chromStart, x.chromEnd))
         return amplicons
 
-    def define_targets(self, spacing, mindata):
+    def define_targets(self, spacing, mindata) -> DataFrame:
         """
-        Return a pandas DataFrame array of valid targets for CNV analysis.
-        Each target is in the form:
-            (chromosome, start, end, Amplicon)
+        Return valid targets for further analysis. Each target is in the form: (chromosome, start, end, Amplicon)
+
+        :param int spacing: number of nucleotides to ignore at amplicon start and end, to avoid overlapping reads
+        :param int mindata: minimum number of nucleotides for a valid target
+        :return: a dataframe of targets
         """
         print('Defining targets...')
         targets = []
         this_chrom = ''
-        last_chromEnd = 0
-        ampsize = len(self.amplicons)
+        last_chrom_end = 0
+        amp_size = len(self.amplicons)
 
         for i, amplicon in enumerate(self.amplicons):
             if amplicon.chrom != this_chrom:
                 print("Analyzing chromosome: " + amplicon.chrom)
                 this_chrom = amplicon.chrom
-                last_chromEnd = 0
+                last_chrom_end = 0
 
             # Skip amplicons that are contained within the last amplicon
-            if amplicon.chromEnd - spacing <= last_chromEnd:
+            if amplicon.chromEnd - spacing <= last_chrom_end:
                 continue
 
             # Avoid regions of overlap with the previous amplicon
-            this_start = max(last_chromEnd + spacing,
+            this_start = max(last_chrom_end + spacing,
                              amplicon.chromStart + spacing)
             this_end = amplicon.chromEnd - spacing
 
             # Avoid regions of overlap with the next amplicon, if applicable
-            if i < (ampsize - 1) and self.amplicons[i + 1].chrom == amplicon.chrom:
+            if i < (amp_size - 1) and self.amplicons[i + 1].chrom == amplicon.chrom:
                 this_end = min(this_end,
                                self.amplicons[i + 1].chromStart - spacing)
 
@@ -164,15 +172,20 @@ class ROI(object):
                     amplicon
                 ))
 
-            last_chromEnd = amplicon.chromEnd
+            last_chrom_end = amplicon.chromEnd
 
         print("{0} targets acquired.".format(len(targets)))
-        return pandas.DataFrame(targets)
+        return DataFrame(targets)
 
 
 class Amplicon(object):
     """
     Hold data for each amplicon listed in the BED file
+
+    :param list beddata: is the line in the .bed file corresponding to the amplicon
+    :param int pool_loc: location of pool data in beddata
+    :param str region: should be in the form: chr1:10000-90000'
+    :param int maxpool: maximum number of origin pools allowed for a valid target
     """
 
     # column names from: https://genome.ucsc.edu/FAQ/FAQformat.html#format1
@@ -191,9 +204,15 @@ class Amplicon(object):
 
     fieldnames = {field[0] for field in fields}
 
-    def __new__(cls, beddata, pool_loc, region=None, maxpool=None):
+    def __new__(cls, beddata: list, pool_loc: int, region: str = None, maxpool: int = None):
         """
-        Verify the need to create an Amplicon object.
+        Verify the need to create an Amplicon object
+
+        :param list beddata: is the line in the .bed file corresponding to the amplicon
+        :param int pool_loc: location of pool data in beddata
+        :param str region: should be in the form: chr1:10000-90000'
+        :param int maxpool: maximum number of origin pools allowed for a valid target
+        :return: None or cls
         """
         location = [beddata[0], int(beddata[1]), int(beddata[2])]
         pools = [int(n) for n in beddata[pool_loc].split('Pool=')[1].split(',')]
@@ -222,11 +241,7 @@ class Amplicon(object):
 
         return object.__new__(cls)
 
-    def __init__(self, beddata, pool_loc, region=None, maxpool=None):
-        """
-        `bedline` is the line in the .bed file corresponding to the amplicon
-        `region` is a region constraint (if any)
-        """
+    def __init__(self, beddata: list, pool_loc: int, region: str = None, maxpool: int = None):
         # Load attribute data
         for i in range(len(beddata)):
             setattr(self, self.fields[i][0], self.fields[i][1](beddata[i]))
