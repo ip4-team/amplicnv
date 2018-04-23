@@ -768,7 +768,7 @@ class NRRTest(cdf):
 
         traces, titles = self._create_traces(cnv, value_column,
                                              pos_column, cnvlike=cnvlike,
-                                             plotting=True, layout=layout)
+                                             toplot=True, layout=layout)
         return traces, titles, layout
 
     @overrides(cdf)
