@@ -4,6 +4,7 @@
 
 @author: valengo
 """
+from typing import Union
 
 from plotly.offline import plot
 import plotly.graph_objs as go
@@ -12,11 +13,20 @@ from plotly import tools
 from ..utils import ismultlist
 
 
-def scatter(x, y, yax='auto',
-            offset=None, name=None,
-            mode='markers',
-            filename='temp-plot.html',
-            mult=2):
+def scatter(x: list, y: list, yax: Union[str, list] = 'auto', offset: list = None, name: list = None,
+            mode: str = 'markers', filename: str = 'temp-plot.html', mult: int = 2):
+    """
+    Plot custom scatter traces
+
+    :param list x: x axis data
+    :param list y: y axis data
+    :param str yax: y axis range
+    :param list offset: offsets for x axis
+    :param list name: scatter's names
+    :param str mode: markers, lines, or lines+markers
+    :param str filename: path to output file
+    :param int mult: value to multiply each y axis value
+    """
     if (offset is not None and
             name is not None):
         data = create_traces(x, y, offset, name, mode, mult)
@@ -39,7 +49,19 @@ def scatter(x, y, yax='auto',
     plot({'data': data, 'layout': layout}, filename=filename, auto_open=False)
 
 
-def create_traces(xs, ys, offsets, names, mode, mult, size=3):
+def create_traces(xs: list, ys: list, offsets: list, names: list, mode: str, mult: int, size: float = 3) -> list:
+    """
+    Create custom scatter traces
+
+    :param list xs: x axis data
+    :param list ys: y axis data
+    :param list offsets: offsets for x axis
+    :param list names: trace's names
+    :param str mode: markers, lines, or lines+markers
+    :param int mult: value to multiply each y axis value
+    :param float size: marker's size
+    :return: list of traces
+    """
     traces = []
     for i in range(len(names)):
         trace = go.Scatter(
@@ -55,50 +77,56 @@ def create_traces(xs, ys, offsets, names, mode, mult, size=3):
 
 class HeatMap(object):
     """
-    This class creates a heatmap using reads counting
-    values from a BAM file
+    This class creates a heatmap using reads counting values from a BAM file
+
+    :param list counters: it's a list of read counters. Each value was generated using pysam.count() see nrrhandler.NRR
+    :param list pools: it's a list of pools, where counters[i] match a region that is actually from pools[i]
+    :param int nbins: number of bins
     """
 
     def __init__(self, counters, pools, nbins=10):
-        """
-        Calls functions in order to create the heatmap
+        self.counters = counters
+        self.pools = pools
+        self.nbins = nbins
+        self.__create()
 
-        Parameters:
-             counters (list): it is a list of reads counters. Each value
-             was generated using pysam.count() - see baseline.py
-
-             pools (list): it is a list of pools that are related to
-             the counters:
-                  counters[i] is the amount of reads that "match" a region
-                  that is acctually from pools[i]
-
-             nbins (int): number of bins
-        """
-        self.__create(counters, pools, nbins)
-
-    def __create(self, counters, pools, nbins):
+    def __create(self):
         """
         Creates the heatmap itself
         """
-        z = [[] for z in range(max(pools))]
-        x = ['Pool ' + str(x) for x in range(1, max(pools) + 1)]
+        z = [[] for z in range(max(self.pools))]
+        x = ['Pool ' + str(x) for x in range(1, max(self.pools) + 1)]
 
-        binned_counts = [defaultdict(int) for i in range(max(pools))]
-        for i in range(len(counters)):
-            binned_counts[pools[i] - 1][1 + counters[i] // nbins] += 1
+        binned_counts = [defaultdict(int) for i in range(max(self.pools))]
+        for i in range(len(self.counters)):
+            binned_counts[self.pools[i] - 1][1 + self.counters[i] // self.nbins] += 1
 
         for i in range(len(binned_counts)):
             for area in range(max(binned_counts[i])):
                 z[i].append(binned_counts[i].get(area, 0))
 
         data = [go.Heatmap(x=x, z=z, transpose=True,
-                           colorscale='Reds', dy=nbins)]
+                           colorscale='Reds', dy=self.nbins)]
         plot({"data": data})
 
 
-def y_scatter(y, x=None, filename='temp-plot.html', toplot=True,
-              mode='markers', size=1, name='', color=None,
-              auto_open=False):
+def y_scatter(y: list, x: list = None, filename: str = 'temp-plot.html', toplot: bool = True,
+              mode: str = 'markers', size: float = 1, name: str = '', color: str = None,
+              auto_open: bool = False) -> go.Scatter:
+    """
+    Create a scatter plot with or without x axis data
+
+    :param list y: y axis data
+    :param list x: x axis data
+    :param str filename: path to output file
+    :param bool toplot: whether to write the plot
+    :param str mode: markers, lines, or lines+markers
+    :param float size: marker's size
+    :param str name: scatter's name
+    :param str color: scatter's color
+    :param bool auto_open: whether to auto open the plot
+    :return: trace
+    """
     if x is None:
         data = [
             go.Scatter(
@@ -126,8 +154,19 @@ def y_scatter(y, x=None, filename='temp-plot.html', toplot=True,
     return data[0]
 
 
-def histogram(x, filename='temp-plot.html', toplot=True,
-              autobinx=True, color=None, auto_open=False):
+def histogram(x: list, filename: str = 'temp-plot.html', toplot: bool = True,
+              autobinx: bool = True, color: str = None, auto_open: bool = False) -> go.Histogram:
+    """
+    Create histogram
+
+    :param list x: x axis data
+    :param str filename: path to output file
+    :param bool toplot: whether to write plot to file
+    :param bool autobinx: whether to auto bin histogram
+    :param str color: bar's color
+    :param bool auto_open: whether to auto open plot in the browser
+    :return: histogram
+    """
     data = [
         go.Histogram(
             x=x,
@@ -144,17 +183,17 @@ def histogram(x, filename='temp-plot.html', toplot=True,
     return data[0]
 
 
-def create_subplots(mtraces, titles, layouts=None,
-                    height=10000, width=1250):
+def create_subplots(mtraces: list, titles: list, layouts: list = None,
+                    height: int = 10000, width: int = 1250) -> go.Figure:
     """
     Make subplots using plotly.tools
 
-    Parameters:
-         mtraces (list of lists): multidimensional array of plotly scatter/hist
-         titles (list): one dimensional array of titles
-         layouts (list): one dimensional array of (dicts) layouts
-         height (number): plot height
-         width (number): plot width
+    :param list mtraces: multidimensional list of plotly scatter/hist
+    :param list titles: one dimensional list of titles
+    :param list layouts: one dimensional list of (dicts) layouts
+    :param int height: plot's height
+    :param int width: plot's width
+    :return: Figure
     """
     if not ismultlist(mtraces):
         raise ValueError('mtraces must be multidimensional!')

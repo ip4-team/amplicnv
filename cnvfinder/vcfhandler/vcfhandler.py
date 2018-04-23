@@ -504,6 +504,7 @@ class VCFTest(cdf):
                         auto_open: bool, filename: str = None) -> tuple:
         """
         Plot variants when region is None
+
         :param str mode: heterozygous or heterozygous
         :param defaultdict scat_layout: scatter layout
         :param defaultdict hist_layout: histogram layout
