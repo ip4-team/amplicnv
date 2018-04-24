@@ -4,31 +4,31 @@
 
 @author: valengo
 """
-from numpy import histogram
+from typing import Union
+
+from numpy import histogram, float64
 from statistics import mode
 from statistics import StatisticsError
 from collections import defaultdict
 
+from pandas import DataFrame
 
-def classify_by_count(row, default='u', prop=0, attrs=['-', '+']):
+
+def classify_by_count(row: list, default: str = 'u', prop: int = 0, attrs: Union[list, set] = {'-', '+'}):
     """
     Classify a given list (register) according to the
     appearance proportion of unique attributes (column values).
     The main idea is that some attributes defined by 'attrs' parameter
     cannot display simultaneously a proportion higher than 'prop' considering
     the total number of attributes (prop rule).
-    Wheen a given register doesn't brake this rule, it is classified according
+    When a given register doesn't brake this rule, it is classified according
     to its own mode.
 
-    Parameters:
-        row (list): data
-        default (str): name of the class to be returned when register (list)
-        brakes the proportion rule
-        prop (float): max proportion allowed for each attr (simultaneously)
-        attrs (list): list of attr that are used in the prop rule
-
-    Returns:
-        (typeof(row[0])): register's class
+    :param list row: data
+    :param str default: name of the class to be returned when register brakes the proportion rule
+    :param float prop: max proportion allowed for each attr (simultaneously)
+    :param list attrs: list of attr that are used in the prop rule
+    :return: register's class (typeof(row[0]))
     """
     counters = defaultdict(lambda: 0)
     # count unique label appearances
@@ -40,24 +40,21 @@ def classify_by_count(row, default='u', prop=0, attrs=['-', '+']):
         if counters[attr] > len(row) * prop:
             above_prop += 1
     # uncertain register
-    if (above_prop) == (len(attrs)):
+    if above_prop == (len(attrs)):
         return default
     # otherwise, classify by mode
     return classify_by_mode(row, default)
 
 
-def classify_by_mode(row, default='u'):
+def classify_by_mode(row: list, default: str = 'u'):
     """
     Classify a given list according to the most frequent element.
     In case there is no most frequent, the class is defined
-    by default str.
+    by default str
 
-    Parameters:
-        row (list): data
-        default (str): name of the class when there is no most frequent element
-
-    Returns:
-        (typeof(row[0])): register's class
+    :param list row: data
+    :param str default: name of the class when there is no most frequent element
+    :return: register's class (typeof(row[0]))
     """
     try:
         row_mode = mode(row)
@@ -66,119 +63,99 @@ def classify_by_mode(row, default='u'):
     return row_mode
 
 
-def filter_by_cutoff(df, col, below_cutoff, above_cutoff):
+def filter_by_cutoff(df: DataFrame, col: int, below_cutoff: float, above_cutoff: float) -> DataFrame:
     """
-    Filter a given df depending on values
-    (below_cutoff and above_cutoff) that are in a given col
+    Filter a given df depending on values (below_cutoff and above_cutoff) that are in a given col
 
-    Parameters:
-         df (pandas.Dataframe): dataframe with target data (to be filtered)
-         col (int): column where to look for data
-         below_cutoff (number): filter out data below this cutoff
-         above_cutoff (number): filter out data above this cutoff
-
-    Returns:
-         filtered dataframe (pandas.DataFrame)
+    :param DataFrame df: dataframe with target data
+    :param int col: column where to look for data
+    :param float below_cutoff: filter out rows that present value below this cutoff at column col
+    :param float above_cutoff: filter out rows that present value above this cutoff at column col
+    :return: filtered dataframe
     """
     return df[(df.iloc[:, col] < above_cutoff) &
               (df.iloc[:, col] > below_cutoff)]
 
 
-def IQR(df, col):
+def iqr(df: DataFrame, col: int) -> tuple:
     """
     Compute Interquartile Range (IQR)
 
-    Parameters:
-         df (pandas.DataFrame): dataframe with target data
-         col (number): column where to look for data
-
-    Returns:
-         Q1, Q3, and IQR
+    :param DataFrame df: dataframe with target data
+    :param int col: column where to look for data
+    :return: Q1, Q3, and IQR
     """
-    Q1 = df.iloc[:, col].quantile(0.25)
-    Q3 = df.iloc[:, col].quantile(0.75)
-    return Q1, Q3, Q3 - Q1
+    q1 = df.iloc[:, col].quantile(0.25)
+    q3 = df.iloc[:, col].quantile(0.75)
+    return q1, q3, q3 - q1
 
 
-def std(df, col):
+def std(df: DataFrame, col: int) -> float64:
     """
     Compute Standard Deviation (std)
 
-    Parameters:
-         df (pandas.DataFrame): dataframe with target data
-         col (number): column where to look for data
-
-     Returns:
-         std
+    :param DataFrame df: dataframe with target data
+    :param int col: column where to look for data
+    :return: std
     """
     return df.iloc[:, col].std()
 
 
-def below_range(test_value, metric, center, interval_range):
+def below_range(test_value: float, metric: float, center: float, interval_range: float) -> bool:
     """
     Check whether test_value is smaller (<) than a certain value
     that is computed as: center - metric * interval_range
 
-    Parameters:
-         test_value (number): value to be compared
-         metric (number): value of metric used to comparison (IQR or std)
-         center (number): center of comparison (for example, Q1)
-         interval_range (number): value to multiply metric by
-    Returns:
-         True or False
+    :param float test_value: value to be compared
+    :param float metric: value of metric used to comparison (IQR or std)
+    :param float center: center of comparison (for example, Q1)
+    :param float interval_range: value to multiply metric by
+    :return: whether test value is below range
     """
-    return (test_value < (center - metric * interval_range))
+    return test_value < (center - metric * interval_range)
 
 
-def above_range(test_value, metric, center, interval_range):
+def above_range(test_value: float, metric: float, center: float, interval_range: float) -> bool:
     """
     Check whether test_value is larger (>) than a certain value
     that is computed as: center + metric * interval_range
 
-    Parameters:
-         test_value (number): value to be compared
-         metric (number): value of metric used to comparison (IQR or std)
-         center (number): center of comparison (for example, Q1)
-         interval_range (number): value to multiply metric by
-
-    Returns:
-         True or False
+    :param float test_value: value to be compared
+    :param float metric: value of metric used to comparison (IQR or std)
+    :param float center: center of comparison (for example, Q1)
+    :param float interval_range: value to multiply metric by
+    :return: whether test value is above range
     """
-    return (test_value > (center + metric * interval_range))
+    return test_value > (center + metric * interval_range)
 
 
-def isbimodal(bafs, bins=[0.2, 0.4, 0.6, 0.8], interval_range=1.5):
+def isbimodal(bafs: list, bins: Union[list, set] = {0.2, 0.4, 0.6, 0.8}, interval_range: float = 1.5) -> bool:
     """
     Verify if data (bafs) have bimodal distribution
 
-    Parameters:
-         bafs (list): list of values
-         bins (list): list of bins for histogram
-         interval_range (number): range for comparison among bins
-
-     Returns:
-         True or False
+    :param list bafs: values
+    :param list bins: bins for histogram
+    :param float interval_range: range for comparison among bins
+    :return: whether data has evidence of bimodal distribution
     """
-    hist = histogram(bafs, bins)
-    # len(bin[0.4:0.6]) * 1.5 < len(bin[0.2:0.4] + len(bin(0.6:0.8)))
-    return (hist[0][1] * interval_range < hist[0][0] + hist[0][2])
+    as_list = list(bins)
+    as_list.sort()
+    hist = histogram(bafs, as_list)
+    return hist[0][1] * interval_range < hist[0][0] + hist[0][2]
 
 
-def compute_metric(df, col, metric, center=1):
+def compute_metric(df: DataFrame, col: int, metric: str, center: float = 1) -> tuple:
     """
     Compute IQR or STD depending on "metric" param
 
-    Parameters:
-         df (pandas.DataFrame): dataframe that contains target data
-         col (int): column where to look for data
-         metric (str): 'IQR' or 'std'
-         center (number): center of values
-
-    Returns:
-         IQR() or std()
+    :param DataFrame df: dataframe that contains target data
+    :param int col: column where to look for data
+    :param str metric: IQR or std
+    :param number center: center of values
+    :return: iqr() or std()
     """
 
     if metric == 'IQR':
-        return IQR(df, col)
+        return iqr(df, col)
     else:
         return center, center, std(df, col)

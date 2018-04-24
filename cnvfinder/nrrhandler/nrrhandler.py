@@ -24,7 +24,7 @@ from ..stats import compute_metric
 from ..stats import above_range
 from ..stats import below_range
 from ..stats import filter_by_cutoff
-from ..stats import IQR
+from ..stats import iqr
 from ..stats import classify_by_count
 from multiprocessing import cpu_count
 from ..mphandler import MPPoolHandler
@@ -333,7 +333,7 @@ class NRR(object):
         else:
             counters = self.counters
         df = DataFrame(counters)
-        q1, q3, metric = IQR(df, 0)
+        q1, q3, metric = iqr(df, 0)
         # label targets considering interquartile range (IQR)
         labels = metric2label(counters, q1, q3, metric, iqr_range)
         # filter out counters + or - labeled
