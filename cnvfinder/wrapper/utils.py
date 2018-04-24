@@ -4,6 +4,8 @@
 @author: valengo
 """
 import argparse
+from typing import Tuple
+
 import pandas
 from enum import Enum
 
@@ -19,7 +21,7 @@ def create_parser(description: str, command: str = Strings.command.value, usage:
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 
-def parse_sub_command(parser: argparse.ArgumentParser) -> argparse.Namespace:
+def parse_sub_command(parser: argparse.ArgumentParser) -> Tuple:
     return parser.parse_known_args(sys.argv[2:])
 
 
@@ -35,7 +37,7 @@ def get_arg_help_from_enum(arg: Enum):
     return arg.value
 
 
-def getattr_by(arg: Enum, args: argparse.Namespace):
+def getattr_by(arg: Enum, args: Tuple):
     if type(args) == tuple:  # parse_known_args returns tuple
         args = args[0]
 

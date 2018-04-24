@@ -10,16 +10,16 @@ from collections import defaultdict
 import configparser
 import os
 import errno
+from typing import Union, Sized
 
 import pkg_resources
+from pandas import DataFrame
 
 
 class GenericDescriptor(object):
     """
-    Get and set attribute data in a given instance
-    by using its getter and setter
+    Get and set attribute data in a given instance by using its getter and setter
     """
-
     def __init__(self, getter, setter):
         self.getter = getter
         self.setter = setter
@@ -37,12 +37,9 @@ def validstr(attr_name: str, empty_allowed: str = True):
     """
     Check if a given attribute is a valid str
 
-    Parameters:
-    attr_name (str): name of the attribute
-    empty_allowed (boolean): whether attr_name is allowed to be None/empty
-
-    Returns:
-         decorator
+    :param str attr_name: name of the attribute
+    :param bool empty_allowed: whether att_name is allowed to be None/empty
+    :return: decorator
     """
 
     def decorator(cls):
@@ -70,16 +67,13 @@ def validstr(attr_name: str, empty_allowed: str = True):
     return decorator
 
 
-def number(s):
+def number(s: str) -> Union[int, float]:
     """
-    try to cast a string (if any) to a number (int or float)
+    Try to cast a string (if any) to a number (int or float)
 
-    Parameters:
-         s (str): string to be converted
-
-    Returns:
-         s (int/float) if it's already a float or int
-         n (int/float) s converted to int or float
+    :param str s: string to be converted
+    :return: converted string
+    :raise ValueError: if casting fails
     """
     if isinstance(s, str):
         try:
@@ -95,13 +89,11 @@ def number(s):
 class NumberProperty(object):
     """
     Define number properties
+
+    :param str name: property name
     """
 
     def __init__(self, name):
-        """
-        Parameters:
-             name (str): property name
-        """
         self.name = name
 
     def __get__(self, obj, objtype):
@@ -121,15 +113,13 @@ class NumberProperty(object):
 class Region(object):
     """
     Handle region string (chr:chrStart-chrEnd)
+
+    :param str region: should be in the form: chr:start-end, for example: chr1:10000-90000" or "chr1:10000" or "chr1
     """
 
     def __init__(self, region):
-        """
-        Parameters:
-             region (str): the region itself
-        """
         self.as_string = region
-        self.as_tuple = self.__totuple(region)
+        self._as_tuple = self.as_tuple = self.__to_tuple(region)
 
     @property
     def as_tuple(self):
@@ -137,8 +127,7 @@ class Region(object):
 
     @as_tuple.setter
     def as_tuple(self, value):
-        if (value is None or (isinstance(value, tuple) and len(value) <= 3 and
-                              len(value) >= 1)):
+        if value is None or (isinstance(value, tuple) and 3 >= len(value) >= 1):
             self._as_tuple = value
         else:
             print('Invalid value {0} for Region.as_tuple'.format(value))
@@ -153,13 +142,12 @@ class Region(object):
         elif len(self.as_tuple) == 1:
             return '{0}'.format(*self.as_tuple)
 
-    def __totuple(self, region):
+    def __to_tuple(self, region) -> Union[tuple, None]:
         """
         Write string "chr:chrStart-chrEnd" as tuple: (chr, chrStart, chrEnd)
 
-        Returns:
-             location (tuple): if regions exists
-             None: if there is n region
+        :param str region: the region itself
+        :return: location (tuple): if region exists, otherwise: None
         """
         if self.as_string is None:
             return None
@@ -173,72 +161,66 @@ class Region(object):
             split4bounds = split4chrom[1].split('-')
             try:
                 location.append(int(split4bounds[0]))
-            except ValueError as error:
+            except ValueError:
                 print('Region start {0} '.format(split4bounds[0]) +
                       'is not a number. Skipping!')
 
             if len(split4bounds) > 1 and len(location) > 1:
                 try:
                     location.append(int(split4bounds[1]))
-                except ValueError as error:
+                except ValueError:
                     print('Region end {0} '.format(split4bounds[1]) +
                           'is not a number. Skipping!')
-
         return tuple(location)
 
 
 class ConfigfileParser(object):
     """
-    Handle config.ini file parsing
+    Handle config.cfg or config.ini file parsing. An example for the 'params' parameter is:
+
+    params = {
+                'baseline': 'm',
+                'bed': 'm',
+                'sample': 'm',
+                'output':  'm',
+                'targtest': 'o'
+            }
+
+    :param str filename: path to configuration file
+    :param params: dictionary describing whether params are mandatory
     """
 
     def __init__(self, filename, params):
-        """
-        Parameters:
-             filename (str): filename
-             params (dict): dictionary describing whether params
-             are mandatory. For example:
-                  self.sections_params = {
-                      'baseline': 'm',
-                      'bed': 'm',
-                      'sample': 'm',
-                      'output':  'm',
-                      'targtest': 'o'
-                  }
-        """
         self.filename = filename
         self.sections_params = params
         self.sections = self.__parseconfig()
 
-    def __getopts(self, section):
+    def __getopts(self, section: str) -> Union[defaultdict, None]:
         """
         Get options from section
 
-        Parameters:
-             section (str): label for a section
-
-        Returns:
-             optdict (defaultdict): dictionary containing "section" options
+        :param str section: label for section
+        :return: if 'section' exists, return a dictionary containing 'section' options. Otherwise return None
         """
         config = configparser.ConfigParser()
         config.read(self.filename)
 
         try:
             options = config.options(section)
-        except KeyError as error:
+        except KeyError:
             print('Section [{0}] not provided. Skipping!'.format(section))
             return None
-        except configparser.NoSectionError as error:
+        except configparser.NoSectionError:
             print('Section [{0}] not provided. Skipping!'.format(section))
             return None
 
-        optdict = defaultdict(lambda: None)
+        optdict = defaultdict(lambda: list)  # type: Union[Sized, list, defaultdict]
         for opt in options:
             try:
                 optdict[opt] = config.get(section, opt).strip().split('\n')
                 if len(optdict[opt]) == 1:
                     optdict[opt] = optdict[opt][0]
-            except:
+            except KeyError:
                 print('Error getting {} '.format(opt) +
                       'option from section [{}]'.format(section))
                 optdict[opt] = None
@@ -263,21 +245,22 @@ class ConfigfileParser(object):
 class ExtensionManager(object):
     """
     Manages two different file extensions (rename files)
-    """
 
-    def __init__(self, filename, orig_ext, prom_ext):
-        """
-        Parameters:
-             filename (str): filename
-             orig_ext (str): original extension
-             prom_ext (str): new extension
-        """
+    :param str filename: path to file
+    :param str orig_ext: original extension
+    :param str prom_ext: new extension
+    """
+    def __init__(self, filename: str, orig_ext: str, prom_ext: str):
         self.orig_ext = orig_ext
         self.prom_ext = prom_ext
-        self.filename = filename
+        self._filename = self.filename = filename
         self.new_filename = self.filename.replace(orig_ext, prom_ext)
 
     @property
+    def filename(self):
+        return self._filename
+
+    @filename.setter
     def filename(self, value):
         if value.endswith(self.orig_ext):
             self._filename = value
@@ -292,15 +275,12 @@ class ExtensionManager(object):
                                    self.new_filename)
 
 
-def ismultlist(x):
+def ismultlist(x: list):
     """
     Verify if a list is multidimensional
 
-    Parameters:
-         x (list): the list itself
-
-     Returns:
-          True/False: whether it's a multimensional list
+    :param list x: list itself
+    :return: whether list is multidimensional
     """
     if x:
         return ((isinstance(x, list)) and
@@ -309,13 +289,12 @@ def ismultlist(x):
         return False
 
 
-def createdirs(dirs):
+def createdirs(dirs: list):
     """
     Try to create every dir in dirs meanwhile tell the user
     what is going on
 
-    Parameters:
-        dirs (list): list of dirs
+    :param list dirs: list of dirs
     """
     print('In case they don\'t exist, creating directories:')
     for d in dirs:
@@ -323,12 +302,12 @@ def createdirs(dirs):
         print('{}: success'.format(d))
 
 
-def createdir(path):
+def createdir(path: str):
     """
     Try to create a dir if it does not exist already
 
-    Parameters:
-         path (str): dir path
+    :param path to directory
+    :raise OsError: when an error other than errno.EEXIST happens
     """
     try:
         os.makedirs(path)
@@ -337,15 +316,12 @@ def createdir(path):
             raise
 
 
-def overrides(interface_class):
+def overrides(interface_class: str):
     """
     Define "overrides" property
 
-    Parameters:
-         interface_class (str): overrided class name
-
-    Returns:
-         overrider (method/obj): the property
+    :param str interface_class: name of the super class
+    :return: the property itself
     """
 
     def overrider(method):
@@ -355,16 +331,13 @@ def overrides(interface_class):
     return overrider
 
 
-def appenddir(path, dirname):
+def appenddir(path: str, dirname: str) -> str:
     """
-    Append a dirname to a path string.
+    Append a dirname to a path string
 
-    Parameters:
-        path (str): path itself
-        dirname (str): dirname itself
-
-    Returns:
-        (str): path/dirname
+    :param str path: path where to append
+    :param str dirname: path to be appended
+    :return: path/dirname
     """
     if path.endswith('/'):
         return '{}{}'.format(path, dirname)
@@ -372,15 +345,15 @@ def appenddir(path, dirname):
         return '{}/{}'.format(path, dirname)
 
 
-def bedwrite(filename, df, index=False, header=True, sep='\t'):
+def bedwrite(filename: str, df: DataFrame, index: bool = False, header: bool = True, sep: str = '\t'):
     """
     Write df as bedfile
-    :param filename: where to write
-    :param df: what to write
-    :param index: whether to write row index
-    :param header: whether to write column names
-    :param sep: column separator
-    :return: None
+
+    :param str filename: where to write
+    :param DataFrame df: what to write
+    :param bool index: whether to write row index
+    :param bool header: whether to write column names
+    :param str sep: column separator
     """
     print('Writing targets to file: "{0}"'.format(filename))
     with contextlib.suppress(FileNotFoundError):
@@ -392,6 +365,7 @@ def bedwrite(filename, df, index=False, header=True, sep='\t'):
 def get_package_name():
     """
     Get package name
+
     :return: name
     """
     return __name__.split('.')[0]
@@ -418,6 +392,7 @@ def resource_path_or_exit(filename: str):
 def sortable_chromosome(chromosome: str) -> str:
     """
     Format a chromosome, so its sortable
+
     :param chromosome: chromosome itself
     :return: formatted chromosome
     """
@@ -430,6 +405,7 @@ def sortable_chromosome(chromosome: str) -> str:
 def sort_chroms(chrom_list: list) -> list:
     """
     Sort chromosomes in a list
+
     :param chrom_list: list itself
     :return: sorted list
     """
