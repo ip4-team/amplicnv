@@ -12,20 +12,18 @@ from multiprocessing import cpu_count
 
 class MPPoolHandler(object):
     """
-    handle tasks multiprocessing using multiprocessing.Pool
-    """
+    Handle tasks multiprocessing using multiprocessing.Pool
 
-    def __init__(self, tasks, cores=None, chunksize=None):
-        """
-         Parameters:
-              tasks (list): a list of tuples (tasks)
-              cores (int): number of cores to be used when multiprocessing
-              chunksize (int): chunksize of tasks to be send each time for a
-              given process
-         """
+    :param list tasks: a list of tasks. Each task is defined as a tuple
+    :param int cores: number of cores to be used when multiprocessing
+    :param int chunksize: chunksize of tasks to be send each time for a given process
+
+    """
+    def __init__(self, tasks: list, cores: int = None, chunksize: int = None):
         self.tasks = tasks
-        self.cores = cores
-        self.chunksize = chunksize
+        self._cores = self.cores = cores
+        self._chunksize = self.chunksize = chunksize
+        self.pool = None
 
     @property
     def cores(self):
@@ -60,15 +58,15 @@ class MPPoolHandler(object):
     def __setstate__(self, state):
         self.__dict__.update(state)
 
-    def _runstar(self, args):
+    @staticmethod
+    def _runstar(args):
         return args[0](*args[1:len(args)])
 
     def run(self):
         """
         Run tasks
 
-        Returns:
-             res (list): resulting stuff of tasks
+        :return: a list containing the resulting stuff of tasks
         """
         freeze_support()
         self.pool = Pool(self.cores)

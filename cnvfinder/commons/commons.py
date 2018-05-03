@@ -6,6 +6,8 @@
 """
 
 from collections import defaultdict
+from typing import Union
+
 from ..utils import Region
 from ..utils import NumberProperty
 from pandas import DataFrame
@@ -19,17 +21,17 @@ from ..graphics import y_scatter
 
 class ChromDF(metaclass=ABCMeta):
     """
-    This class manages a pandas DataFrame that must have its three
-    first columns named as:
-    "chrom", "chromStart", and "chromEnd"
+    **This class manages a DataFrame that must have its three first columns named as:
+    "chrom", "chromStart", and "chromEnd"**
+
+    :param DataFrame df: the dataframe itself
     """
 
-    def __init__(self, df):
-        """
-        Parameters:
-            df (pandas.DataFrame): the dataframe itself
-        """
-        self.df = df
+    def __init__(self, df: Union[DataFrame, None]):
+        self.rootname = None
+        self.path2plotcnv = None
+        self._df = self.df = df
+        self.ratios = []
 
     # properties
     size = NumberProperty('_size')
@@ -50,21 +52,11 @@ class ChromDF(metaclass=ABCMeta):
 
     maxdist = NumberProperty('_maxdist')
 
-    size = NumberProperty('_size')
-
-    step = NumberProperty('_step')
-
-    interval_range = NumberProperty('_interval_range')
-
     minread = NumberProperty('_minread')
 
     below_cutoff = NumberProperty('_below_cutoff')
 
     above_cutoff = NumberProperty('_above_cutoff')
-
-    maxdist = NumberProperty('_maxdist')
-
-    cnv_like_range = NumberProperty('_cnv_like_range')
 
     @property
     def mlabels(self):
@@ -72,24 +64,16 @@ class ChromDF(metaclass=ABCMeta):
                 'chromStart',
                 'chromEnd']
 
-    @mlabels.setter
-    def mlabels(self, value):
-        self._mlabels = ['chrom',
-                         'chromStart',
-                         'chromEnd']
-
     @property
     def df(self):
         return self._df
 
     @df.setter
-    def df(self, value):
+    def df(self, value: Union[DataFrame, None]):
         """
-        Assure that df stick to the rules regarding
-        columns len and names.
+        Assure that df stick to the rules regarding columns len and names.
 
-        Parameters:
-            value (pandas.DataFrame): a pandas DataFrame
+        :param DataFrame value: the dataframe itself
         """
         if value is not None:
             columns = value.columns
@@ -103,43 +87,38 @@ class ChromDF(metaclass=ABCMeta):
                                      ', but "{}" was given.'.format(columns[i]))
         self._df = value
 
-    def iterchroms(self, df=None):
+    def iterchroms(self, df: DataFrame = None) -> list:
         """
         Create a list to iterate through self.df
-        based on its 'chrom' column values
 
-        Parameters:
-            df (pandas.DataFrame): a pandas DataFrame
+        :param DataFrame df: dataframe itself
+        :return: dataframe grouped by chromosomes
         """
         if df is None:
-            return self.creategroups(self.df)
+            return self.create_groups(self.df)
         else:
-            return self.creategroups(df)
+            return self.create_groups(df)
 
-    def iterblocks(self, group, size=400, step=10):
+    def iterblocks(self, group: DataFrame, size: int = 400, step: int = 10) -> list:
         """
-        Given a group (of variants), this method creates
-        blocks from it by creating (sliding) windows of a
+        Given a chromosome group, this method creates blocks from it by creating (sliding) windows of a
         given size at a given step
 
-        Parameters:
-            group (pandas.DataFrame): a pandas DataFrame
-            size (int): block size
-            step (int): distance between two consecutive blocks
+        :param Dataframe group: dataframe containing data
+        :param int size: block's size
+        :param int step: distance between two consecutive blocks
+        :return: dictionary of blocks {}
         """
         return self.__createblocks(group, size, step)
 
-    def getrows(self, df, region):
+    @staticmethod
+    def getrows(df: DataFrame, region: str) -> DataFrame:
         """
-        Get df rows in region
+        Get dataframe rows in region
 
-        Parameters:
-            df (pandas.DataFrame): pandas DataFrame
-            region (str): the region itself. It must stick to the format:
-             chrom:chromStart-chromEnd
-
-        Returns:
-            rows (pandas.Dataframe)
+        :param DataFrame df: dataframe itself
+        :param str region: it should be in the form: chr1:10000-90000
+        :return: a new dataframe containing only rows within region
         """
         ras_tuple = Region(region).as_tuple
         if ras_tuple:
@@ -155,19 +134,13 @@ class ChromDF(metaclass=ABCMeta):
             return rows
         return df
 
-    def getin(self, region=None, column=None):
+    def getin(self, region: str = None, column: str = None) -> Union[DataFrame, list, None]:
         """
         Get self.df values in region and/or column
 
-        Paramters:
-            region (str): the region itself. It must stick to the format:
-             chrom:chromStart-chromEnd
-            column (str): column name
-
-        Returns:
-            rows (pandas.DataFrame): in case column is None
-            list(rows) (list): in case column is not None
-
+        :param str region: it should be in the form: chr1:10000-90000
+        :param str column: column's name
+        :return: None if no data is found; a dataframe in case column is None; a list if column is not None
         """
         rows = self.getrows(self.df, region)
         if rows is not None and column:
@@ -175,13 +148,12 @@ class ChromDF(metaclass=ABCMeta):
         else:
             return rows
 
-    def medfilter(self, column, kernel_size=9):
+    def medfilter(self, column: str, kernel_size: int = 9):
         """
-        Apply median filter on self.df column
+        Apply median filter on self.df column. Values are stored at this very same column
 
-        Parameters:
-            column (str): column name (where to apply median filter)
-            kernel_size (int): kernel size for median filter.
+        :param str column: column to lookup for values that will be median filtered
+        :param int kernel_size: median filter kernel's size
         """
         med_ratios = []
         for group in self.iterchroms():
@@ -190,28 +162,24 @@ class ChromDF(metaclass=ABCMeta):
         self.ratios = med_ratios
         self.df.loc[:, column] = med_ratios
 
-    def get_autossomic(self):
+    def get_autosomal(self):
         """
         Filter self.df by chromosomes, so rows where df.chrom == chrX or
-        df.chrom == chrY are filtered out.
+        df.chrom == chrY are filtered out
 
-        Returns:
-            df (pandas.DataFrame) that contains data of autossomic chromosomes
+        :return: dataframe that contains data only for autosomal chromosomes
         """
         return self.df[(self.df.chrom != 'chrX') &
                        (self.df.chrom != 'chrY')]
 
-    def createid(self, block):
+    @staticmethod
+    def create_id(block: DataFrame) -> Union[str, None]:
         """
         Create block id for a given block. The id is based on the block
         region (where it starts and ends)
 
-        Parameters:
-            block (pandas.DataFrame): a pandas DataFrame
-
-        Returns:
-            id (str): a block id in the format: chrom:chromStart-chromEnd
-            None: in case block id creation fails
+        :param DataFrame block: data
+        :return: a block id in the format: chrom:chromStart-chromEnd or None in case block id creation fails
         """
         try:
             head = block.head(1)
@@ -222,35 +190,30 @@ class ChromDF(metaclass=ABCMeta):
             chrom_end = tail.iloc[0, 2]
 
             return '{}:{}-{}'.format(chrom, chrom_start, chrom_end)
-        except AttributeError as error:
+        except AttributeError:
             print('Failed on getting group/block region!')
-        except IndexError as error:
+        except IndexError:
             print('Failed on getting group/block region!')
         return None
 
-    def creategroups(self, df):
+    def create_groups(self, df: DataFrame) -> list:
         """
-        create a list to iterate through self.df
-        based on its 'chrom' column values. In other words, each group
-        will contain data of a unique chromosome.
+        Create a list to iterate through self.df based on its 'chrom' column values. In other words, each group
+        will contain data of a unique chromosome
 
-        Parameters:
-            df (pandas.DataFrame): a pandas DataFrame
-
-        Returns:
-            groups (defaultdict): a dictionary whose keys are regions
-            (ids) created by self.createid and items are pandas.DataFrame obj
+        :param DataFrame df: data
+        :return: list of groups represented as: {'id': 'chrom:chromStart-chromEnd', 'df': DataFrame}
         """
         unique_chroms = df.chrom.unique()
         groups = []
         for i, chrom in enumerate(unique_chroms):
-            group = defaultdict(lambda: None)
+            group = defaultdict(lambda: None)  # type: Union[DataFrame, str]
             group['df'] = df[df.chrom == chrom]
-            group['id'] = self.createid(group['df'])
+            group['id'] = self.create_id(group['df'])
             groups.append(group)
         return groups
 
-    def compute(self):
+    def compute(self) -> DataFrame:
         """
         compute stats on self.df data. What is computed depends on the class
         that implements self._compute()
@@ -261,15 +224,18 @@ class ChromDF(metaclass=ABCMeta):
         """
         detect stats on self.df data and analyze them. What is computed
         depends on the class that implements: self._compute()
-
         """
         return self._unify_blocks(self._analyze_blocks(self._compute(),
                                                        self.maxdist))
 
-    def compute_plot(self, mode='filtered',
-                     filename='cnv-subplot.html'):
+    def compute_plot(self, mode: str = 'filtered',
+                     filename: str = 'cnv-subplot.html') -> tuple:
         """
-        detect and plot CNVs
+        Detect and plot CNVs
+
+        :param str mode: 'analyzed' -> CNV and CNV-like blocks are merged; 'filtered' -> non CNV blocks are filtered out
+        :param str filename: path to output file
+        :return: analyzed or filtered CNVs as dataframe, traces for plotting, plot titles, and layout
         """
         df = self._compute()
         if mode == 'analyzed':
@@ -292,16 +258,13 @@ class ChromDF(metaclass=ABCMeta):
         else:
             return df, traces, titles, layout
 
-    def _unify_blocks(self, blocks, todf=False):
+    def _unify_blocks(self, blocks: DataFrame, todf: bool = False) -> Union[DataFrame, list]:
         """
-        Unify blocks that have overlaps (in regions/id)
+        Unify blocks that have overlaps in regions/id
 
-        Parameters:
-             blocks -- blocks DataFrame
-             todf -- whether to return bocks as a pandas.DataFrame or list
-
-        Returns:
-             unified_blocks (pandas.DataFrame or list)
+        :param DataFrame blocks: data
+        :param bool todf: whether to return blocks as pandas.DataFrame or list
+        :return: unified blocks as list or DataFrame
         """
         unified_blocks = []
         for group in self.iterchroms(df=blocks):
@@ -330,20 +293,13 @@ class ChromDF(metaclass=ABCMeta):
         else:
             return unified_blocks
 
-    def _analyze_blocks(self, blocks, maxdist):
+    def _analyze_blocks(self, blocks: DataFrame, maxdist: int):
         """
-        Analyze blocks in order to define which CNV-like blocks
-        are actual CNVs
+        Analyze blocks in order to define which CNV-like blocks are actual CNVs
 
-        Parameters:
-             blocks (pandas.DataFrame): a pandas DataFrame of cnv and
-             cnv-like data
-             maxdist (number): maximum distance allowed of a cnv-like block, to
-             its closest cnv block, for it be a cnv as well.
-
-        Returns:
-             cnv_blocks (pandas.DataFrame): cnv + cnv-like that were detected
-             as cnvs
+        :param DataFrame blocks: a pandas DataFrame of cnv and cnv-like data
+        :param int maxdist: maximum distance allowed of a CNV-like block to its closest CNV block, it's also a CNV block
+        :return:
         """
         cnvs, potential_cnvs = self._filter_blocks(blocks, todf=True)
         cnv_blocks = []
@@ -359,71 +315,59 @@ class ChromDF(metaclass=ABCMeta):
         cnv_blocks.sort(key=lambda x: (x[0], x[1], x[2]))
         return DataFrame(cnv_blocks, columns=['chrom', 'chromStart', 'chromEnd', 'call'])
 
-    def _filter_blocks(self, blocks, todf=False):
+    def _filter_blocks(self, blocks: DataFrame, todf: bool = False) -> tuple:
         """
-        Split blocks dataframe in two dataframes or list: one for CNV blocks
-        (1 * interval_range) and another for potential CNV blocks
-        (interval_range * self.cnv_like_range)
+        Split blocks dataframe in two dataframes or list: one for CNV blocks (1 * interval_range) and another for
+        CNV-like blocks (interval_range * self.cnv_like_range)
 
-        Parameters:
-             blocks (pandas.DataFrame): a pandas DataFrame of cnv and
-             cnv-like data
-             todf (boolean): whether return "cnvs" and "potential cnvs"
-             as pandas.DataFrame
-
-        Returns:
-             cnvs, potential_cnvs (pandas.DataFrame or list)
+        :param DataFrame blocks: data
+        :param bool todf: whether to return as DataFrame
+        :return:
         """
         cnvs = self._unify_blocks(blocks[blocks.isoutlier_1st], todf=todf)
         potential_cnvs = self._unify_blocks(blocks[(blocks.isoutlier_1st == False) &
-                                                   (blocks.isoutlier_2nd)], todf=todf)
+                                                   blocks.isoutlier_2nd], todf=todf)
         return cnvs, potential_cnvs
 
-    def __createblocks(self, group, size, step):
+    def __createblocks(self, group: DataFrame, size: int, step: int) -> list:
         """
-        Given a group (pandas.DataFrame by chromosome), this method
-        creates blocks (sliding windows) of it
+        Given a group, this method creates blocks using a sliding window approach
 
-        Parameters:
-             group (pandas.DataFrame): a pandas DataFrame
-             size (int): block's size
-             step (int): step to take between two consecutives blocks
-
-        Returns:
-             blocks (defaultdict):
+        :param DataFrame group: data
+        :param int size: block's size
+        :param int step: step to take between two consecutive blocks
+        :return: a list of blocks
         """
         if size > len(group['df']):
             size = len(group['df'])
 
         blocks = []
         for i in range(0, len(group['df']) - size + step, step):
-            block = defaultdict(lambda: None)
+            block = defaultdict(lambda: None)  # type: Union[DataFrame, str]
             block['df'] = group['df'].iloc[i:i + size, :]
-            block['id'] = self.createid(block['df'])
+            block['id'] = self.create_id(block['df'])
             blocks.append(block)
         return blocks
 
-    def _create_traces(self, cnv, value_column, pos_column, cnvlike=None,
-                       plotting=False, layout=None):
+    def _create_traces(self, cnv: DataFrame, value_column: str, pos_column: str, cnvlike: DataFrame = None,
+                       toplot: bool = False, layout: defaultdict = None, auto_open: bool = False) -> tuple:
         """
-        Create traces with for making subplots
+        Create traces for making subplots
 
-        Parameters:
-             cnv (pandas.DataFrame): detected CNVs
-             value_column (str): name of the column where to find target
-             ratio/baf pos_column (str): name of the column where to find
-             target position cnvlike (pandas.DataFrame): detected cnv-like
-
-        Returns:
-             traces (list): list of traces
-             titles (list): list of titles
+        :param DataFrame cnv: detected CNVs
+        :param str value_column: column's name to lookup for Y axis values
+        :param str pos_column: column's name to lookup for X axis values
+        :param DataFrame cnvlike: detected CNV-like
+        :param list bool toplot: whether to plot intermediate plots
+        :param defaultdict layout: plot's layout
+        :param bool auto_open: whether to auto open plots in the browser
+        :return traces and titles:
         """
-
         traces = []
         titles = []
         for group in self.iterchroms():
             # get all values and pos
-            chrom, chromStart, chromEnd = Region(group['id']).as_tuple
+            chrom, chrom_start, chrom_end = Region(group['id']).as_tuple
             titles.append('Chromosome {}'.format(chrom.split('chr')[-1]))
             values = self.getin(column=value_column, region=group['id'])
             values_pos = self.getin(column=pos_column, region=group['id'])
@@ -434,8 +378,8 @@ class ChromDF(metaclass=ABCMeta):
             for cnvdf in cnvdf_list:
                 current_values, current_pos = [], []
                 if cnvdf is not None:
-                    chromdf = cnvdf[cnvdf.chrom == chrom]
-                    for row in chromdf.itertuples():
+                    chrom_df = cnvdf[cnvdf.chrom == chrom]
+                    for row in chrom_df.itertuples():
                         region = '{}:{}-{}'.format(row[1], row[2], row[3])
                         current_values.extend(self.getin(column=value_column,
                                                          region=region))
@@ -446,20 +390,20 @@ class ChromDF(metaclass=ABCMeta):
 
             # create traces
             traces.append([
-                y_scatter(values, x=values_pos, toplot=False, size=3,
+                y_scatter(values, x=values_pos, toplot=toplot, size=3,
                           color='rgb(153, 204, 255)'),
-                y_scatter(cnv_values[-1], x=cnv_pos[-1], toplot=False, size=3,
+                y_scatter(cnv_values[-1], x=cnv_pos[-1], toplot=toplot, size=3,
                           color='rgb(255, 102, 0)', name='Potential-CNVs'),
-                y_scatter(cnv_values[0], x=cnv_pos[0], toplot=False,
+                y_scatter(cnv_values[0], x=cnv_pos[0], toplot=toplot,
                           size=3, name='CNVs',
                           color='rgb(153, 0, 0)')
             ])
             chrom_trace = [
-                y_scatter(values, x=values_pos, toplot=False, size=3,
+                y_scatter(values, x=values_pos, toplot=toplot, size=3,
                           color='rgb(153, 204, 255)'),
-                y_scatter(cnv_values[-1], x=cnv_pos[-1], toplot=False, size=3,
+                y_scatter(cnv_values[-1], x=cnv_pos[-1], toplot=toplot, size=3,
                           color='rgb(255, 102, 0)', name='Potential-CNVs'),
-                y_scatter(cnv_values[0], x=cnv_pos[0], toplot=False,
+                y_scatter(cnv_values[0], x=cnv_pos[0], toplot=toplot,
                           size=3, name='CNVs',
                           color='rgb(153, 0, 0)')
             ]
@@ -470,16 +414,17 @@ class ChromDF(metaclass=ABCMeta):
             fig = create_subplots([[chrom_trace]], [chrom_title],
                                   layouts=[layout],
                                   height=400)
-            plot(fig, filename=filename, auto_open=False)
+            plot(fig, filename=filename, auto_open=auto_open)
 
         return traces, titles
 
     @abstractmethod
-    def _make_subplots(self):
+    def _make_subplots(self, cnv: DataFrame, value_column: str = '',
+                       pos_column: str = '', cnvlike: DataFrame = None) -> tuple:
         pass
 
     @abstractmethod
-    def _compute(self):
+    def _compute(self) -> DataFrame:
         pass
 
     @abstractmethod

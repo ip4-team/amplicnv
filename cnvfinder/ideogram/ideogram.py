@@ -12,15 +12,18 @@ from cnvfinder.utils import resource_path_or_exit
 """
 
 
-def chromosome_collections(df: pandas.DataFrame, y_positions: dict, height: float, to_log: bool=False, **kwargs):
+def chromosome_collections(df: pandas.DataFrame, y_positions: dict, height: float,
+                           to_log: bool=False, **kwargs):
     """
-    yields BrokenBarHCollection of features that can be added to an Axes object :param to_log: whether to log info
-    :param df: must at least have columns ['chrom', 'chromStart', 'chromEnd', 'colors']. If no column 'width',
+    Yields BrokenBarHCollection of features that can be added to an Axes object
+
+    :param bool to_log: whether to log info
+    :param DataFrame df: must at least have columns ['chrom', 'chromStart', 'chromEnd', 'colors']. If no column 'width',
     it will be calculated from start/end
-    :param y_positions: keys are chromosomes, value are y-value at which to anchor the BrokenBarHCollection
-    :param height: height of each BrokenBarHCollection
+    :param dict y_positions: keys are chromosomes, value are y-value at which to anchor the BrokenBarHCollection
+    :param float height: height of each BrokenBarHCollection
     :param kwargs: are passed to BrokenBarHCollection
-    :return:
+    :return: BrokenBarHCollection
     """
     del_width = False
     if 'width' not in df.columns:
@@ -38,23 +41,20 @@ def chromosome_collections(df: pandas.DataFrame, y_positions: dict, height: floa
 
 
 class Ideogram(object):
+    """
+    Create ideograms
+
+    :param str file: file to load chromosome bands data. Default: 'cytoBand' table from https://genome.ucsc.edu/cgi-bin/hgTables.
+    :param list chroms: plot only chromosomes that are in this list. Default: ['chr%s' % i for i in list(range(1, 23)) + ['M', 'X', 'Y']]
+    :param float chrom_height: height of each ideogram
+    :param float chrom_spacing: spacing between consecutive ideograms
+    :param tuple fig_size: width and height in inches
+    :param dict colors: colors for different chromosome stains
+    :param bool to_log: whether to print log info
+    """
     def __init__(self, file: str = None, chroms: list = None, chrom_height: float = 1,
                  chrom_spacing: float = 1.5, fig_size: tuple = None, colors: dict = None,
                  to_log=False):
-        """
-        Keyword arguments
-        :param file: file to load chromosome bands data. BED format with 'chrom', 'chromStart', 'chromEnd', 'name',
-        and 'gieStain' as columns. First line is skipped.
-        Default: 'cytoBand' table from https://genome.ucsc.edu/cgi-bin/hgTables.
-        :param chroms: plot only chromosomes that are in this list.
-        Default: ['chr%s' % i for i in list(range(1, 23)) + ['M', 'X', 'Y']]
-        :param chrom_height: height of each ideogram
-        :param chrom_spacing: spacing between consecutive ideograms
-        :param fig_size: width and height in inches
-        :param colors: colors for different chromosome stains
-        :param to_log: whether to print log info
-        """
-
         self.to_log = to_log
         self.chrom_height = chrom_height
         self.chrom_spacing = chrom_spacing
@@ -114,7 +114,11 @@ class Ideogram(object):
             self._fig_size = value
 
     def add_chromosomes(self):
+        """
+        Add chromosome ideograms
 
+        :return: fig and ax
+        """
         for chrom in self.chroms[::-1]:
             self.chrom_ybase[chrom] = self.ybase
             self.chrom_centers[chrom] = self.ybase + self.chrom_height / 2.
@@ -141,7 +145,8 @@ class Ideogram(object):
     def save(self, filename: str, **kwargs):
         """
         Save ideograms in a file
-        :param filename: filename
+
+        :param str filename: filename
         :param kwargs: are passed to pyplot.savefig
         """
         self.ax.axis('tight')
@@ -166,12 +171,13 @@ class Ideogram(object):
                  color: str = '#2243a8', alpha: float = 0.5, linewidths: float = 0, **kwargs):
         """
         Add (genomic) data in the plot
-        :param df: data
-        :param height: height of genomic track. Should be smaller than 'chrom_spacing'
-        :param padding: padding between the top of a genomic track and its corresponding ideogram
-        :param color: track's color. It will be used in case 'colors' not in df.columns
-        :param alpha: alpha value used for blending
-        :param linewidths: line widths
+
+        :param DataFrame df: data
+        :param float height: height of genomic track. Should be smaller than 'chrom_spacing'
+        :param float padding: padding between the top of a genomic track and its corresponding ideogram
+        :param str color: track's color. It will be used in case 'colors' not in df.columns
+        :param float alpha: alpha value used for blending
+        :param float linewidths: line widths
         :param kwargs: are passed to BrokenBarHCollection
         """
         df = self.filter_by_chroms(df)
@@ -191,24 +197,27 @@ class Ideogram(object):
     def add_data_above(self, df: pandas.DataFrame, color: str = None):
         """
         Wrapper for adding data above ideograms
-        :param color: bars color
-        :param df: data
+
+        :param str color: bars color
+        :param DataFrame df: data
         """
         self.add_data(df, height=0.5, padding=0.6, color=color)
 
     def add_data_below(self, df: pandas.DataFrame, color: str = None):
         """
         Wrapper for adding data below ideograms
-        :param color: bars color
-        :param df: data
+
+        :param str color: bars color
+        :param DataFrame df: data
         """
         self.add_data(df, height=-0.5, padding=-0.1, color=color)
 
     def add_legend(self, to_patches: list, loc='lower right', **kwargs):
         """
         Create a legend base on to_patches list
-        :param to_patches: list of dict -> {color: color, label: label}
-        :param loc: legend location
+
+        :param list to_patches: list of dict -> {color: color, label: label}
+        :param str loc: legend location
         :param kwargs: are passed to pyplot.legend
         """
         patches = [Patch(color=p['color'], label=p['label']) for p in to_patches]

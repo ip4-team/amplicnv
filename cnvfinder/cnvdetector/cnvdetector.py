@@ -5,7 +5,9 @@
 @author: valengo
 """
 from cnvfinder.ideogram import Ideogram
+from cnvfinder.nrrhandler import NRRTest
 from cnvfinder.utils.utils import bedwrite, sort_chroms
+from cnvfinder.vcfhandler import VCFTest
 from ..utils import ConfigfileParser
 from ..nrrhandler import NRRConfig
 from ..vcfhandler import VCFConfig
@@ -19,17 +21,14 @@ from ..utils import appenddir
 
 @validstr('path', empty_allowed=False)
 class CNVTest(object):
-    def __init__(self, nrrtest=None, vcftest=None, path='results'):
-        """
-        Parameters:
-            nrrtest (NRRTest): a nrrtest object. When it's None, analysis
-            employing "read depth" won't be performed.
+    """
+    **Detect and call CNVs based on read depth and/or variant info**
 
-            vcftest (VCFTest): a vcftest object. When it's None, analysis
-            employing "B allele frequency" won't be performed.
-
-            path: path to save analysis results
-        """
+    :param NRRTest nrrtest: read depth data. When it's None, analysis employing "read depth" won't be performed
+    :param vcftest: variant data. When it's None, analysis employing "read depth" won't be performed
+    :param path: path to output directory
+    """
+    def __init__(self, nrrtest: NRRTest = None, vcftest: VCFTest = None, path: str = 'results'):
         self.nrrtest = nrrtest
         self.vcftest = vcftest
         self.cnvdf = None
@@ -45,10 +44,12 @@ class CNVTest(object):
 
     def analyze_plot(self):
         """
-        Detect CNVs applying ratio and/or BAF data. Output (list and plots)
-        will be saved at self.path (default='./results')
+        Detect CNVs applying ratio and/or BAF data. Output (list and plots) will be saved at self.path
         """
         blocks = []
+        rtitles, rlayout, rtraces = [], [], []
+        vtitles, vlayout, vtraces = [], [], []
+
         # compute and analyze
         if self.nrrtest:
             rdf, rtraces, rtitles, rlayout = self.nrrtest.compute_plot(mode='analyzed',
@@ -122,14 +123,14 @@ class CNVTest(object):
         """
         Write a summary of the tests at self.path/summary.txt
         """
-        nocnv = 'No potential CNVs were found under the specified parameters\n'
+        no_cnv = 'No potential CNVs were found under the specified parameters\n'
         cnv = 'Potential CNVs were found in chromosome(s): {}\n'
         filename = '{}/summary.txt'.format(self.path)
         chroms = []
 
         with open(filename, 'w') as file:
             if self.blocks[0].empty and self.blocks[-1].empty:
-                file.write(nocnv)
+                file.write(no_cnv)
             else:
                 for block in self.blocks:
                     if not block.empty:
@@ -137,6 +138,9 @@ class CNVTest(object):
                 file.write(cnv.format(', '.join(set(chroms))))
 
     def create_ideogram(self):
+        """
+        Create ideograms for the current test
+        """
         print('Creating chromosome ideograms...')
         chroms = sort_chroms(self.cnvdf[0].unique())
         ideo = Ideogram(chroms=chroms)
@@ -169,16 +173,14 @@ class CNVTest(object):
 @validstr('filename', empty_allowed=False)
 class CNVConfig(object):
     """
-    This class holds data about single CNV detection test.
+    **A wrapper for CNVTest. This class loads test parameters from a configuration file**
+
+    :param str filename: path to configuration file
+    :param bool ratio: specify the usage of read depth data
+    :param bool variant: specify the usage of variant data
     """
 
-    def __init__(self, filename, ratio=True, variant=True):
-        """
-        Parameters:
-            filename (str): the configfile's name
-            ratio (boolean): specify the usage of read depth data
-            variant (boolean): specify the usage of variant data
-        """
+    def __init__(self, filename: str, ratio: bool = True, variant: bool = True):
         self.filename = filename
         self.sections_params = {
             'output': 'm'
