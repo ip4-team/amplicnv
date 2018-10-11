@@ -6,8 +6,10 @@ Created on Mon Oct 10 19:35:14 2016
 @author: roberto
 """
 from typing import Union
+
+from bedhandler.domain import RegionId, GeneId, Pool
 from pandas import DataFrame
-from ..utils import Region
+from bedhandler.handler import BedFileLoader
 
 
 def ntuple(string: str) -> tuple:
@@ -61,24 +63,14 @@ class ROI(object):
             mindata = 1
 
         print("Loading .bed data.")
-
-        region = Region(region).as_tuple
-        if region:
-            regstrings = ['dummy', 'pter', 'qter']
-            for i, item in enumerate(region):
-                regstrings[i] = item
-            print("ROI limited to {0}:{1}-{2}".format(*regstrings))
         if maxpool:
             print("ROI limited to max number of pools = {0}".format(maxpool))
         self.source = bedfile
 
-        try:
-            with open(bedfile, 'r') as file:
-                lines = file.readlines()
-        except FileNotFoundError as error:
-            print(error)
-            return
-        self.amplicons = self.load_amplicons(lines, region, maxpool)
+        bed_file = BedFileLoader(bedfile)
+        lines = bed_file.expand_columns()
+
+        self.amplicons = self.load_amplicons(lines, region, maxpool, 8)
         if self.amplicons:
             self.targets = self.define_targets(spacing, mindata)
         else:
@@ -89,7 +81,7 @@ class ROI(object):
             self.source, len(self.amplicons), len(self.targets))
 
     @staticmethod
-    def load_amplicons(lines: list, region: str, maxpool: int) -> list:
+    def load_amplicons(lines: list, region: str, maxpool: int, pool_loc: int) -> list:
         """
         Return a sorted list of amplicons
 
@@ -102,25 +94,23 @@ class ROI(object):
         amplicons = []
         total = 0
         skipped = 0
-        pool_loc = None
         for line in lines:
             newamplicon = None
-            if line.startswith('chr'):
-                total += 1
-                beddata = line.strip().split('\t')
-                if pool_loc is None:
-                    try:
-                        pool_loc = [i for i in range(len(beddata)) if "Pool=" in beddata[i]][0]
-                    except IndexError:
-                        print("Could not find Pool data.")
-                        pool_loc = False
-                        break
-                if pool_loc:
-                    newamplicon = Amplicon(beddata, pool_loc, region, maxpool)
-                if newamplicon is not None:
-                    amplicons.append(newamplicon)
-                else:
-                    skipped += 1
+            total += 1
+            if pool_loc is None:
+                try:
+                    pool_loc = [i for i in range(len(line)) if "Pool=" in line[i]][0]
+                except IndexError:
+                    print("Could not find Pool data.")
+                    pool_loc = False
+                    break
+            if pool_loc:
+                newamplicon = Amplicon(line, pool_loc, region, maxpool)
+            if newamplicon is not None:
+                amplicons.append(newamplicon)
+            else:
+                skipped += 1
+
         print("{0} amplicons read from the .bed file.".format(total))
         print("{0} amplicons loaded.".format(len(amplicons)))
         print("{0} amplicons out of range.".format(skipped))
@@ -188,19 +178,16 @@ class Amplicon(object):
     :param int maxpool: maximum number of origin pools allowed for a valid target
     """
 
-    # column names from: https://genome.ucsc.edu/FAQ/FAQformat.html#format1
     fields = [('chrom', str),
               ('chromStart', int),
               ('chromEnd', int),
-              ('name', str),
+              ('regionId', RegionId),
               ('score', maybeint),
               ('strand', str),
-              ('thickStart', maybeint),
-              ('thickEnd', maybeint),
-              ('itemRgb', ntuple),
-              ('blockCount', maybeint),
-              ('blockSizes', ntuple),
-              ('blockStarts', ntuple)]
+              ('frame', str),
+              ('gene', GeneId),
+              ('pools', Pool),
+              ('submittedRegion', maybeint)]
 
     fieldnames = {field[0] for field in fields}
 
@@ -215,7 +202,7 @@ class Amplicon(object):
         :return: None or cls
         """
         location = [beddata[0], int(beddata[1]), int(beddata[2])]
-        pools = [int(n) for n in beddata[pool_loc].split('Pool=')[1].split(',')]
+        pools = beddata[pool_loc]
 
         # No region constraint and no # maxpool defined
         if not region and not maxpool:
@@ -245,8 +232,8 @@ class Amplicon(object):
         # Load attribute data
         for i in range(len(beddata)):
             setattr(self, self.fields[i][0], self.fields[i][1](beddata[i]))
-        self.pools = list([int(n) for n in beddata[pool_loc].split('Pool=')[1].split(',')])
-        self.genename = self.name.split('_')[0]
+        self.pools = beddata[pool_loc]
+        self.genename = self.gene
         chromosome = self.chrom.split('chr')[-1]
         try:
             self.chromosome = '{:0>2}'.format(int(chromosome))
