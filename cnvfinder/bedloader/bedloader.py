@@ -44,13 +44,12 @@ class ROI(object):
     - self.targets is a DataFrame of valid targets for CNV analysis
 
     :param str bedfile: path to file in which sequencing amplicons are listed (BED)
-    :param str region: should be in the form: chr:start-end, for example: chr1:10000-90000" or "chr1:10000" or "chr1
     :param int spacing: is the number of nucleotides to ignore at amplicon start and end, to avoid overlapping reads
     :param int mindata: is the minimum number of nucleotides for a valid target
     :param int maxpool: is the maximum number of origin pools allowed for a valid target
     """
 
-    def __init__(self, bedfile: str, region: str = None, spacing: int = 20,
+    def __init__(self, bedfile: str, spacing: int = 20,
                  mindata: int = 50, maxpool: int = None):
         # spacing should be >= 0
         if not type(spacing) == int or spacing < 0:
@@ -70,7 +69,7 @@ class ROI(object):
         bed_file = BedFileLoader(bedfile)
         lines = bed_file.expand_columns()
 
-        self.amplicons = self.load_amplicons(lines, region, maxpool, 8)
+        self.amplicons = self.load_amplicons(lines, maxpool, 8)
         if self.amplicons:
             self.targets = self.define_targets(spacing, mindata)
         else:
@@ -81,12 +80,12 @@ class ROI(object):
             self.source, len(self.amplicons), len(self.targets))
 
     @staticmethod
-    def load_amplicons(lines: list, region: str, maxpool: int, pool_loc: int) -> list:
+    def load_amplicons(lines: list, maxpool: int, pool_loc: int) -> list:
         """
         Return a sorted list of amplicons
 
+        :param pool_loc: location of pool data in each line
         :param list lines: list of lines loaded from bed file
-        :param str region: it should be in the form: chr1:10000-90000'
         :param int maxpool: maximum number of origin pools allowed for a valid target
         :return: sorted list of amplicons
         """
@@ -95,17 +94,8 @@ class ROI(object):
         total = 0
         skipped = 0
         for line in lines:
-            newamplicon = None
             total += 1
-            if pool_loc is None:
-                try:
-                    pool_loc = [i for i in range(len(line)) if "Pool=" in line[i]][0]
-                except IndexError:
-                    print("Could not find Pool data.")
-                    pool_loc = False
-                    break
-            if pool_loc:
-                newamplicon = Amplicon(line, pool_loc, region, maxpool)
+            newamplicon = Amplicon(line, pool_loc, maxpool)
             if newamplicon is not None:
                 amplicons.append(newamplicon)
             else:
@@ -158,7 +148,7 @@ class ROI(object):
                     this_chrom,
                     this_start,
                     this_end,
-                    amplicon.genename,
+                    amplicon.gene,
                     amplicon
                 ))
 
@@ -174,7 +164,6 @@ class Amplicon(object):
 
     :param list beddata: is the line in the .bed file corresponding to the amplicon
     :param int pool_loc: location of pool data in beddata
-    :param str region: should be in the form: chr1:10000-90000'
     :param int maxpool: maximum number of origin pools allowed for a valid target
     """
 
@@ -191,49 +180,33 @@ class Amplicon(object):
 
     fieldnames = {field[0] for field in fields}
 
-    def __new__(cls, beddata: list, pool_loc: int, region: str = None, maxpool: int = None):
+    def __new__(cls, beddata: list, pool_loc: int, maxpool: int = None):
         """
         Verify the need to create an Amplicon object
 
         :param list beddata: is the line in the .bed file corresponding to the amplicon
         :param int pool_loc: location of pool data in beddata
-        :param str region: should be in the form: chr1:10000-90000'
         :param int maxpool: maximum number of origin pools allowed for a valid target
         :return: None or cls
         """
-        location = [beddata[0], int(beddata[1]), int(beddata[2])]
         pools = beddata[pool_loc]
 
         # No region constraint and no # maxpool defined
-        if not region and not maxpool:
+        if not maxpool:
             return object.__new__(cls)
 
         if maxpool:
             # Number of pools > maxpool -> False
             if len(pools) > maxpool:
                 return None
-
-        if region:
-            # Wrong chromosome -> False
-            if location[0] != region[0] or len(region) > 3:
-                return None
-
-            # Chromosome and start are defined; location is before start -> False
-            elif len(region) >= 2 and max(location[1:]) < region[1]:
-                return None
-
-            # End is defined; location is after end -> False
-            elif len(region) == 3 and min(location[1:]) > region[2]:
-                return None
-
         return object.__new__(cls)
 
-    def __init__(self, beddata: list, pool_loc: int, region: str = None, maxpool: int = None):
+    def __init__(self, beddata: list, pool_loc: int, maxpool: int = None):
+        self.maxpool = maxpool
         # Load attribute data
         for i in range(len(beddata)):
             setattr(self, self.fields[i][0], self.fields[i][1](beddata[i]))
         self.pools = beddata[pool_loc]
-        self.genename = self.gene
         chromosome = self.chrom.split('chr')[-1]
         try:
             self.chromosome = '{:0>2}'.format(int(chromosome))
@@ -250,7 +223,7 @@ class Amplicon(object):
             raise AttributeError
 
     def __repr__(self):
-        return "Amplicon({0};{1}:{2}-{3})".format(self.name,
+        return "Amplicon({0};{1}:{2}-{3})".format(self.gene,
                                                   self.chrom,
                                                   self.chromStart,
                                                   self.chromEnd)
