@@ -47,10 +47,11 @@ class ROI(object):
     :param int spacing: is the number of nucleotides to ignore at amplicon start and end, to avoid overlapping reads
     :param int mindata: is the minimum number of nucleotides for a valid target
     :param int maxpool: is the maximum number of origin pools allowed for a valid target
+    :param list lines: optional list of lines containing beddata
     """
 
     def __init__(self, bedfile: str, spacing: int = 20,
-                 mindata: int = 50, maxpool: int = None):
+                 mindata: int = 50, maxpool: int = None, lines: list = None):
         # spacing should be >= 0
         if not type(spacing) == int or spacing < 0:
             print("ROI: Invalid spacing: {0}; defaulting to 0".format(spacing))
@@ -66,8 +67,9 @@ class ROI(object):
             print("ROI limited to max number of pools = {0}".format(maxpool))
         self.source = bedfile
 
-        bed_file = BedFileLoader(bedfile)
-        lines = bed_file.expand_columns()
+        if lines is None:
+            bed_file = BedFileLoader(bedfile)
+            lines = bed_file.expand_columns()
 
         self.amplicons = self.load_amplicons(lines, maxpool, 8)
         if self.amplicons:
@@ -148,7 +150,7 @@ class ROI(object):
                     this_chrom,
                     this_start,
                     this_end,
-                    amplicon.gene,
+                    str(amplicon.gene),
                     amplicon
                 ))
 

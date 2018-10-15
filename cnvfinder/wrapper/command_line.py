@@ -313,8 +313,6 @@ class CNVFinderWrapper(object):
                                    command=self.name)
             parser.add_argument(get_arg_name_from_enum(ArgDesc.target), type=str, required=True,
                                 help=get_arg_help_from_enum(ArgDesc.target))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.region), type=str,
-                                help=get_arg_help_from_enum(ArgDesc.region))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.spacing), type=int, default=20,
                                 help=get_arg_help_from_enum(ArgDesc.spacing))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.min_data), type=int, default=50,
@@ -326,7 +324,6 @@ class CNVFinderWrapper(object):
             args = parse_sub_command(parser)
 
             roi = ROI(getattr_by(ArgDesc.target, args),
-                      region=getattr_by(ArgDesc.region, args),
                       spacing=getattr_by(ArgDesc.spacing, args),
                       mindata=getattr_by(ArgDesc.min_data, args),
                       maxpool=getattr_by(ArgDesc.max_pool, args))

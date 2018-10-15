@@ -5,31 +5,32 @@
 @author: valengo
 """
 import sys
+from collections import defaultdict
+from math import sqrt
+from multiprocessing import cpu_count
 from typing import Union
 
 import pysam
-from ..graphics import scatter
+from numpy import log
 from pandas import DataFrame
+
 from ..bedloader import ROI
-from ..utils import validstr
-from collections import defaultdict
-from math import sqrt
-from ..utils import Region
-from ..utils import createdir
-from ..utils import NumberProperty
-from ..utils import ConfigfileParser
-from ..utils import overrides
 from ..commons import ChromDF as cdf
-from ..stats import compute_metric
+from ..graphics import scatter
+from ..mphandler import MPPoolHandler
 from ..stats import above_range
 from ..stats import below_range
+from ..stats import classify_by_count
+from ..stats import compute_metric
 from ..stats import filter_by_cutoff
 from ..stats import iqr
-from ..stats import classify_by_count
-from multiprocessing import cpu_count
-from ..mphandler import MPPoolHandler
-from numpy import log
+from ..utils import ConfigfileParser
+from ..utils import NumberProperty
+from ..utils import Region
 from ..utils import appenddir
+from ..utils import createdir
+from ..utils import overrides
+from ..utils import validstr
 
 
 def readcount(region_list: list, filename: str) -> list:
@@ -122,7 +123,7 @@ class NRR(object):
     def bed(self, value):
         if (value is None and
                 self.bedfile is not None):
-            self._bed = ROI(self.bedfile, self.region)
+            self._bed = ROI(self.bedfile)
         else:
             self._bed = value
 
@@ -197,7 +198,7 @@ class NRR(object):
 
         self.counters = counters
         if self.bed is None:
-            self.bed = ROI(self.bedfile, self.region)
+            self.bed = ROI(self.bedfile)
         if self.counters and self.bed:
             self.reads_by_pool = self.__count_pools()
             self.normalized_counters = self.__norm()
@@ -289,8 +290,9 @@ class NRR(object):
 
         reads_by_pool = defaultdict(int)
         for i, t in enumerate(targets):
-            for pool in t[5].pools:
-                reads_by_pool[pool] += self.counters[i] / len(t[5].pools)
+            pools = t[5].pools.unique_flattened()
+            for pool in pools:
+                reads_by_pool[pool] += self.counters[i] / len(pools)
         self.nreads = sum(self.counters)
 
         return reads_by_pool
@@ -306,11 +308,12 @@ class NRR(object):
 
         for i, t in enumerate(targets):
             current_pools_counter = []
-            for pool in t[5].pools:
+            pools = t[5].pools.unique_flattened()
+            for pool in pools:
                 current_pools_counter.append((self.counters[i] /
                                               self.reads_by_pool[pool]))
             normalized.append(mag * (sum(current_pools_counter) /
-                                     len(t[5].pools)))
+                                     len(pools)))
 
         return normalized
 
