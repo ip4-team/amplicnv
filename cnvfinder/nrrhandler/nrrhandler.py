@@ -14,6 +14,7 @@ import pysam
 from numpy import log
 from pandas import DataFrame
 
+from cnvfinder.tsvparser import CoverageFileParser
 from ..bedloader import ROI
 from ..commons import ChromDF as cdf
 from ..graphics import scatter
@@ -94,7 +95,10 @@ class NRR(object):
     """
 
     def __init__(self, bedfile: str = None, bamfile: str = None, region: str = None,
-                 counters: list = [], bed: ROI = None, parallel: bool = True, to_label: bool = False):
+                 counters: list = [], bed: Union[ROI, CoverageFileParser] = None, parallel: bool = True,
+                 to_label: bool = False,
+                 coverage_filename: str = None):
+        self.coverage_filename = coverage_filename
         self.bedfile = bedfile
         self.bamfile = bamfile
         self.region = region
@@ -106,7 +110,13 @@ class NRR(object):
         self.labels = None
         self.labels_by_pool = None
 
-        if self.load(self.bamfile + '.txt') is None:
+        if self.coverage_filename is not None:
+            self.bed = CoverageFileParser(self.coverage_filename)
+            self.counters = self.bed.counters
+            self.reads_by_pool = self.__count_pools()  # TODO: move it from here
+            self.normalized_counters = self.__norm()
+
+        elif self.load(self.bamfile + '.txt') is None:
             self.count(parallel=parallel)
             self.save()
 
@@ -122,7 +132,7 @@ class NRR(object):
     @bed.setter
     def bed(self, value):
         if (value is None and
-                self.bedfile is not None):
+                self.bedfile is not None and self.coverage_filename is None):
             self._bed = ROI(self.bedfile)
         else:
             self._bed = value
@@ -289,8 +299,8 @@ class NRR(object):
             return None
 
         reads_by_pool = defaultdict(int)
-        for i, t in enumerate(targets):
-            pools = t[5].pools.unique_flattened()
+        for i, target in enumerate(targets):
+            pools = target.pools.unique_flattened()
             for pool in pools:
                 reads_by_pool[pool] += self.counters[i] / len(pools)
         self.nreads = sum(self.counters)
@@ -306,9 +316,9 @@ class NRR(object):
             print('Aborting!')
             return None
 
-        for i, t in enumerate(targets):
+        for i, target in enumerate(targets):
             current_pools_counter = []
-            pools = t[5].pools.unique_flattened()
+            pools = target.pools.unique_flattened()
             for pool in pools:
                 current_pools_counter.append((self.counters[i] /
                                               self.reads_by_pool[pool]))
@@ -387,9 +397,10 @@ class NRRList(object):
     """
 
     def __init__(self, bedfile: str = None, bamfiles: list = None, region: str = None,
-                 bed: ROI = None, parallel: bool = True, to_classify: bool = False):
+                 bed: ROI = None, parallel: bool = True, to_classify: bool = False, coverage_filenames: list = None):
         self.bedfile = bedfile
         self._bamfiles = self.bamfiles = bamfiles
+        self._coverage_filenames = self.coverage_filenames = coverage_filenames
         self.region = region
         self.bed = bed
         self.list = []
@@ -402,19 +413,29 @@ class NRRList(object):
         self.__normalized_counters = []
         self.labels = None
 
-        for i, bamfile in enumerate(self.bamfiles):
-            self.list.append(NRR(bedfile=bedfile,
-                                 bamfile=bamfile,
-                                 bed=bed,
-                                 region=region,
-                                 parallel=parallel,
-                                 to_label=to_classify))
+        if self.coverage_filenames:
+            for i, coverage_filename in enumerate(self.coverage_filenames):
+                self.list.append(NRR(region=region,
+                                     coverage_filename=coverage_filename,
+                                     to_label=to_classify))
+                if self.list[i].counters:
+                    self.__counters.append(self.list[i].counters)
+                    self.__normalized_counters.append(self.list[i].
+                                                      normalized_counters)
+        elif self.bamfiles:
+            for i, bamfile in enumerate(self.bamfiles):
+                self.list.append(NRR(bedfile=bedfile,
+                                     bamfile=bamfile,
+                                     bed=bed,
+                                     region=region,
+                                     parallel=parallel,
+                                     to_label=to_classify))
 
-            bed = self.list[i].bed
-            if self.list[i].counters:
-                self.__counters.append(self.list[i].counters)
-                self.__normalized_counters.append(self.list[i].
-                                                  normalized_counters)
+                bed = self.list[i].bed
+                if self.list[i].counters:
+                    self.__counters.append(self.list[i].counters)
+                    self.__normalized_counters.append(self.list[i].
+                                                      normalized_counters)
         if to_classify:
             print('Classifying targets')
             self.df, self.labels = self.__label_targets()
@@ -745,14 +766,14 @@ class NRRTest(cdf):
             for cnv in p_cnv.itertuples():
                 region = '{}:{}-{}'.format(cnv[1], cnv[2], cnv[3])
                 targets = self.getin(region)
-                for row in targets.itertuples():
-                    cnv_dict['{}:{}-{}'.format(row[5].chrom,
-                                               row[5].chromStart,
-                                               row[5].chromEnd)] = [
-                        row[5].chrom,
-                        row[5].chromStart,
-                        row[5].chromEnd,
-                        row[4], row[-1]]
+                for target in targets.itertuples():
+                    cnv_dict['{}:{}-{}'.format(target.chrom,
+                                               target.chromStart,
+                                               target.chromEnd)] = [
+                        target.chrom,
+                        target.chromStart,
+                        target.chromEnd,
+                        target.gene, target[-1]]
         cnvs = [value for k, value in cnv_dict.items()]
         cnvs.sort(key=lambda x: (x[0], x[1], x[2]))
         return cnvs

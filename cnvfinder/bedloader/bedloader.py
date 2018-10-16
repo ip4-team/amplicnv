@@ -151,13 +151,13 @@ class ROI(object):
                     this_start,
                     this_end,
                     str(amplicon.gene),
-                    amplicon
+                    amplicon.pools
                 ))
 
             last_chrom_end = amplicon.chromEnd
 
         print("{0} targets acquired.".format(len(targets)))
-        return DataFrame(targets)
+        return DataFrame(targets, columns=['chrom', 'chromStart', 'chromEnd', 'gene', 'pools'])
 
 
 class Amplicon(object):
