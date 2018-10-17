@@ -91,13 +91,13 @@ class NRR(object):
     :param ROI bed: amplicons already loaded in memory
     :param bool parallel: whether to count target read depth in parallel
     :param bool to_label: whether to label targets regarding each target read depth in comparison to the mean
+    :param str covfile: path to amplicon.cov file
 
     """
 
     def __init__(self, bedfile: str = None, bamfile: str = None, region: str = None,
                  counters: list = [], bed: Union[ROI, CoverageFileParser] = None, parallel: bool = True,
-                 to_label: bool = False,
-                 covfile: str = None):
+                 to_label: bool = False, covfile: str = None):
         self.covfile = covfile
         self.bedfile = bedfile
         self.bamfile = bamfile
@@ -390,6 +390,7 @@ class NRRList(object):
     :param ROI bed: amplicons already loaded into memory
     :param bool parallel: whether to count defined targets read depth in parallel
     :param bool to_classify: whether to classify defined targets regarding their read depth
+    :param list covfiles: list of paths to amplicon.cov files
     """
 
     def __init__(self, bedfile: str = None, bamfiles: list = None, region: str = None,
