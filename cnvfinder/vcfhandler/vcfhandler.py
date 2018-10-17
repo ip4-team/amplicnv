@@ -647,9 +647,19 @@ class VCFConfig(object):
         self.config = ConfigfileParser(self.filename,
                                        self.sections_params)
         # load sample test
-        sample = VCF(self.config.sections['sample']['bamfile'])
+        if self.config.sections['sample']['vcffile']:
+            sample = VCF(self.config.sections['sample']['vcffile'])
+        else:
+            print('\'vcffile\' option path not defined for sample\'s VCF file. Using bamfile rootname instead.')
+            sample = VCF(self.config.sections['sample']['bamfile'])
+
         # load baseline test
-        baseline = VCFList(self.config.sections['baseline']['bamfiles'])
+        if self.config.sections['baseline']['vcffiles']:
+            baseline = VCFList(self.config.sections['baseline']['vcffiles'])
+        else:
+            print('\'vcffile\' option path not defined for baseline\'s VCF files. Using bamfile rootname instead.')
+            baseline = VCFList(self.config.sections['baseline']['bamfiles'])
+
         # make test
         if self.config.sections['vartest']:
             self.vcftest = VCFTest(baseline, sample,

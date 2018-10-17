@@ -97,8 +97,8 @@ class NRR(object):
     def __init__(self, bedfile: str = None, bamfile: str = None, region: str = None,
                  counters: list = [], bed: Union[ROI, CoverageFileParser] = None, parallel: bool = True,
                  to_label: bool = False,
-                 coverage_filename: str = None):
-        self.coverage_filename = coverage_filename
+                 covfile: str = None):
+        self.covfile = covfile
         self.bedfile = bedfile
         self.bamfile = bamfile
         self.region = region
@@ -110,15 +110,17 @@ class NRR(object):
         self.labels = None
         self.labels_by_pool = None
 
-        if self.coverage_filename is not None:
-            self.bed = CoverageFileParser(self.coverage_filename)
+        # load or count rd
+        if self.covfile is not None:
+            self.bed = CoverageFileParser(self.covfile)
             self.counters = self.bed.counters
-            self.reads_by_pool = self.__count_pools()  # TODO: move it from here
-            self.normalized_counters = self.__norm()
-
         elif self.load(self.bamfile + '.txt') is None:
             self.count(parallel=parallel)
             self.save()
+
+        if self.counters:
+            self.reads_by_pool = self.__count_pools()
+            self.normalized_counters = self.__norm()
 
         if len(self.counters) > 0 and to_label:
             print('Labeling targets')
@@ -132,7 +134,7 @@ class NRR(object):
     @bed.setter
     def bed(self, value):
         if (value is None and
-                self.bedfile is not None and self.coverage_filename is None):
+                self.bedfile is not None and self.covfile is None):
             self._bed = ROI(self.bedfile)
         else:
             self._bed = value
@@ -168,9 +170,6 @@ class NRR(object):
             self.counters = self.__parallel_count(cores)
         else:
             self.counters = self.__count()
-        if self.counters and self.bed:
-            self.reads_by_pool = self.__count_pools()
-            self.normalized_counters = self.__norm()
 
     def load(self, filename: str) -> Union[int, None]:
         """
@@ -209,9 +208,6 @@ class NRR(object):
         self.counters = counters
         if self.bed is None:
             self.bed = ROI(self.bedfile)
-        if self.counters and self.bed:
-            self.reads_by_pool = self.__count_pools()
-            self.normalized_counters = self.__norm()
 
         return 1
 
@@ -397,10 +393,10 @@ class NRRList(object):
     """
 
     def __init__(self, bedfile: str = None, bamfiles: list = None, region: str = None,
-                 bed: ROI = None, parallel: bool = True, to_classify: bool = False, coverage_filenames: list = None):
+                 bed: ROI = None, parallel: bool = True, to_classify: bool = False, covfiles: list = None):
         self.bedfile = bedfile
         self._bamfiles = self.bamfiles = bamfiles
-        self._coverage_filenames = self.coverage_filenames = coverage_filenames
+        self._covfiles = self.covfiles = covfiles
         self.region = region
         self.bed = bed
         self.list = []
@@ -413,10 +409,10 @@ class NRRList(object):
         self.__normalized_counters = []
         self.labels = None
 
-        if self.coverage_filenames:
-            for i, coverage_filename in enumerate(self.coverage_filenames):
+        if self.covfiles:
+            for i, coverage_filename in enumerate(self.covfiles):
                 self.list.append(NRR(region=region,
-                                     coverage_filename=coverage_filename,
+                                     covfile=coverage_filename,
                                      to_label=to_classify))
                 if self.list[i].counters:
                     self.__counters.append(self.list[i].counters)
@@ -851,10 +847,12 @@ class NRRConfig(object):
         self.config = ConfigfileParser(self.filename,
                                        self.sections_params)
         # load sample test
-        sample = NRR(**self.config.sections['sample'],
+        sample = NRR(bamfile=self.config.sections['sample']['bamfile'],
+                     covfile=self.config.sections['sample']['covfile'],
                      bedfile=self.config.sections['bed']['bedfile'])
         # load baseline test
-        baseline = NRRList(**self.config.sections['baseline'],
+        baseline = NRRList(bamfiles=self.config.sections['baseline']['bamfiles'],
+                           covfiles=self.config.sections['baseline']['covfiles'],
                            bedfile=self.config.sections['bed']['bedfile'])
         # make test
         if self.config.sections['targtest']:
