@@ -15,10 +15,10 @@ CNVfinder's documentation
 
 What is **CNVfinder**?
 ======================
-CNVfinder is a **Python 3.x** package for copy number variation (CNV) detection on whole exome sequencing (WES) data from amplicon-based enrichment technologies. Besides the `BED <https://genome.ucsc.edu/FAQ/FAQformat#format1>`_ and `BAM <http://software.broadinstitute.org/software/igv/bam>`_ (binary SAM) files, the user may specify a `VCF <http://www.internationalgenome.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-40/>`_ (Variant Call Format) file for each BAM file, allowing a more accurate analysis.
+CNVfinder is a **Python 3.x** package for copy number variation (CNV) detection on whole exome sequencing (WES) data from amplicon-based enrichment technologies.
 CNVfinder was designed to please three kind of people: those familiar with coding, those more comfortable with user friendly programs, and those who fit both styles.
 
-CNVfinder is split in four main modules: **bedloader**, **nrrhandler**; **vcfhandler**; and **cnvdetector**. Their name speak for themselves: bedloader loads/writes BED files, nrrhandler handles number of reads in regions loaded from BAM files using pysam.AlignmentFile, vcfhandler handles VCF files using pysam.VariantFile, and finally, cnvdetector puts all these modules together for CNV detection.
+CNVfinder is split in several modules and the main modules are: **nrrhandler**; **vcfhandler**; and **cnvdetector**. Their name speak for themselves: nrrhandler handles number of reads in regions loaded from BAM files using pysam.AlignmentFile, vcfhandler handles VCF files using pysam.VariantFile, and finally, cnvdetector puts all modules together for CNV detection.
 
 Installation
 ============
@@ -43,8 +43,7 @@ Before we start
 When running the cnvdetector module, keep in mind the following assumptions:
  
 * your user has permission to write in the directory where BAM files are located.
-* VCF files are named according to BAM filenames. For example, a given sample is represented by a BAM file named "sample1.bam" and a corresponding VCF file named "sample1.vcf.gz".
- 
+
 Running tests
 =============
 After installing CNVfinder, all you have to do is to create a config file (`here it's how to do it <#configuration-file>`_), do some preprocessing (`check it here <#preprocessing>`_), and type the following on the Python command line::
@@ -56,14 +55,15 @@ This will provide you with some beautiful graphics and a BED file for visualizat
 
 Configuration file
 ===================
-In the following snippet you can find an example of a `configuration file <https://docs.python.org/3/library/configparser.html>`_. There are four mandatory sections: bed, sample, baseline, and output. Each of these sections has its own mandatory keys and values: bedfile, bamfile, bamfiles, and path, respectively. Basically, these aforementioned values represent the names of the files that will be used in the CNV detection process. Note that VCF root filename(s) must match with the BAM files::
+In the following snippet you can find an example of a `configuration file <https://docs.python.org/3/library/configparser.html>`_. There are four mandatory sections: bed, sample, baseline, and output. Basically, the arguments of each mandatory section represent the names of the files that can be used in the CNV detection process::
 
 	[bed]
 		bedfile = /path/to/AmpliSeqExome.20131001.designed.bed
 
 	[sample]
-		bamfile = 
-			/path/to/test/file.bam
+		bamfile = /path/to/test/file.bam
+		covfile = /path/to/test/file.tsv
+		vcffile = /path/to/test/file.vcf.gz
 
 	[baseline]
 		bamfiles = 
@@ -72,6 +72,18 @@ In the following snippet you can find an example of a `configuration file <https
 			/path/to/baseline/file_2.bam
 			/path/to/baseline/file_3.bam
 			/path/to/baseline/file_4.bam
+		covfiles =
+		         /path/to/baseline/file_0.tsv
+		         /path/to/baseline/file_1.tsv
+		         /path/to/baseline/file_2.tsv
+		         /path/to/baseline/file_3.tsv
+		         /path/to/baseline/file_4.tsv
+		vcffiles =
+		         /path/to/baseline/file_0.vcf.gz
+		         /path/to/baseline/file_1.vcf.gz
+		         /path/to/baseline/file_2.vcf.gz
+		         /path/to/baseline/file_3.vcf.gz
+		         /path/to/baseline/file_4.vcf.gz
 
 	[targtest]
 		metric = std
@@ -90,6 +102,12 @@ In the following snippet you can find an example of a `configuration file <https
 
 	[output]
 		path = test/results
+
+The sample section arguments "bamfile" and "covfile" are equivalent and just one of them must be provided. The difference is that
+"covfile" already contains the number of reads found in each target of the given sample. When working with "bamfile", the "bedfile" of the "bed"
+section is used to define targets from the amplicons listed in this file. Furthermore, the number of reads for each defined target will be counted
+from the "bamfile". This is also valid for "bamfiles" and "covfiles" of the "baseline" section. Keep in mind that you should not mix the usage of "covfiles" and
+"bamfiles". An explanation about amplicon coverage files ("covfiles") can be found `here <#amplicon-coverage-files>`_.
 
 There are other sections and parameters that can be specified:
 
@@ -132,6 +150,14 @@ in the BAM file and store this information on a file named as '{bamfile name}.ba
 the {bamfile name}.bam is used (file.bam in our example), the nrrhandler will get the number of reads 
 from the text file, what is way faster than extract this information from the BAM file. This is very useful 
 for the creation of an exome baseline and run multiple tests using it.
+
+
+Amplicon coverage files
+=======================
+Amplicon coverage files, arguments "covfile" and "covfiles", are provided as output of Ion Torrent :sup:`TM` sequencers from ThermoFisher Scientific.
+They can be obtained from the Torrent Server by going to "Completed Runs & Results", choosing a report, clicking on "coverageAnalysis.html", clicking on the link of the desired barcode,
+sliding to the bottom of the page, clicking on "Download the amplicon coverage summary file". You'll notice this file is in *xls* format and you should
+convert it to a tab-separated values (TSV) file. This can be done in any spreadsheet editor.
 
 Having issues using CNVfinder?
 You can contact us at our `Github project page <https://github.com/ip4-team/cnvfinder>`_ and we'll be very happy in helping you. 

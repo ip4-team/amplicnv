@@ -25,7 +25,7 @@ class CoverageFileParser:
         """
         Extract columns from lines based on columns of interest and
         split them in two entities: one DataFrame representing actual targets [chrom, chromStart, chromEnd...] and
-        a list representing the number of reads for each target, in order.
+        a list representing the number of reads for each target.
 
         :param list lines: actual data
         :param list columns: list of columns of interest
