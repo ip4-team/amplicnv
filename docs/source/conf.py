@@ -25,7 +25,7 @@
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
-needs_sphinx = '1.8.1'
+# needs_sphinx = '1.0'
 
 # Custom stuff
 
