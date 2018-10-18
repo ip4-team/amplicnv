@@ -43,6 +43,12 @@ bedloader
 .. autoclass:: ROI
     :members:
 
+tsvparser
+=========
+.. automodule:: cnvfinder.tsvparser
+.. autoclass:: CoverageFileParser
+    :members:
+
 ideogram
 ========
 .. automodule:: cnvfinder.ideogram

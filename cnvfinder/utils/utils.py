@@ -214,7 +214,7 @@ class ConfigfileParser(object):
             print('Section [{0}] not provided. Skipping!'.format(section))
             return None
 
-        optdict = defaultdict(lambda: list)  # type: Union[Sized, list, defaultdict]
+        optdict = defaultdict(lambda: None)  # type: Union[Sized, list, defaultdict]
         for opt in options:
             try:
                 optdict[opt] = config.get(section, opt).strip().split('\n')

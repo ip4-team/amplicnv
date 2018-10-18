@@ -5,31 +5,33 @@
 @author: valengo
 """
 import sys
+from collections import defaultdict
+from math import sqrt
+from multiprocessing import cpu_count
 from typing import Union
 
 import pysam
-from ..graphics import scatter
+from numpy import log
 from pandas import DataFrame
+
+from cnvfinder.tsvparser import CoverageFileParser
 from ..bedloader import ROI
-from ..utils import validstr
-from collections import defaultdict
-from math import sqrt
-from ..utils import Region
-from ..utils import createdir
-from ..utils import NumberProperty
-from ..utils import ConfigfileParser
-from ..utils import overrides
 from ..commons import ChromDF as cdf
-from ..stats import compute_metric
+from ..graphics import scatter
+from ..mphandler import MPPoolHandler
 from ..stats import above_range
 from ..stats import below_range
+from ..stats import classify_by_count
+from ..stats import compute_metric
 from ..stats import filter_by_cutoff
 from ..stats import iqr
-from ..stats import classify_by_count
-from multiprocessing import cpu_count
-from ..mphandler import MPPoolHandler
-from numpy import log
+from ..utils import ConfigfileParser
+from ..utils import NumberProperty
+from ..utils import Region
 from ..utils import appenddir
+from ..utils import createdir
+from ..utils import overrides
+from ..utils import validstr
 
 
 def readcount(region_list: list, filename: str) -> list:
@@ -89,11 +91,14 @@ class NRR(object):
     :param ROI bed: amplicons already loaded in memory
     :param bool parallel: whether to count target read depth in parallel
     :param bool to_label: whether to label targets regarding each target read depth in comparison to the mean
+    :param str covfile: path to amplicon.cov file
 
     """
 
     def __init__(self, bedfile: str = None, bamfile: str = None, region: str = None,
-                 counters: list = [], bed: ROI = None, parallel: bool = True, to_label: bool = False):
+                 counters: list = [], bed: Union[ROI, CoverageFileParser] = None, parallel: bool = True,
+                 to_label: bool = False, covfile: str = None):
+        self.covfile = covfile
         self.bedfile = bedfile
         self.bamfile = bamfile
         self.region = region
@@ -105,9 +110,17 @@ class NRR(object):
         self.labels = None
         self.labels_by_pool = None
 
-        if self.load(self.bamfile + '.txt') is None:
+        # load or count rd
+        if self.covfile is not None:
+            self.bed = CoverageFileParser(self.covfile)
+            self.counters = self.bed.counters
+        elif self.load(self.bamfile + '.txt') is None:
             self.count(parallel=parallel)
             self.save()
+
+        if self.counters:
+            self.reads_by_pool = self.__count_pools()
+            self.normalized_counters = self.__norm()
 
         if len(self.counters) > 0 and to_label:
             print('Labeling targets')
@@ -121,8 +134,8 @@ class NRR(object):
     @bed.setter
     def bed(self, value):
         if (value is None and
-                self.bedfile is not None):
-            self._bed = ROI(self.bedfile, self.region)
+                self.bedfile is not None and self.covfile is None):
+            self._bed = ROI(self.bedfile)
         else:
             self._bed = value
 
@@ -157,9 +170,6 @@ class NRR(object):
             self.counters = self.__parallel_count(cores)
         else:
             self.counters = self.__count()
-        if self.counters and self.bed:
-            self.reads_by_pool = self.__count_pools()
-            self.normalized_counters = self.__norm()
 
     def load(self, filename: str) -> Union[int, None]:
         """
@@ -197,10 +207,7 @@ class NRR(object):
 
         self.counters = counters
         if self.bed is None:
-            self.bed = ROI(self.bedfile, self.region)
-        if self.counters and self.bed:
-            self.reads_by_pool = self.__count_pools()
-            self.normalized_counters = self.__norm()
+            self.bed = ROI(self.bedfile)
 
         return 1
 
@@ -288,9 +295,10 @@ class NRR(object):
             return None
 
         reads_by_pool = defaultdict(int)
-        for i, t in enumerate(targets):
-            for pool in t[5].pools:
-                reads_by_pool[pool] += self.counters[i] / len(t[5].pools)
+        for i, target in enumerate(targets):
+            pools = target.pools.unique_flattened()
+            for pool in pools:
+                reads_by_pool[pool] += self.counters[i] / len(pools)
         self.nreads = sum(self.counters)
 
         return reads_by_pool
@@ -304,13 +312,14 @@ class NRR(object):
             print('Aborting!')
             return None
 
-        for i, t in enumerate(targets):
+        for i, target in enumerate(targets):
             current_pools_counter = []
-            for pool in t[5].pools:
+            pools = target.pools.unique_flattened()
+            for pool in pools:
                 current_pools_counter.append((self.counters[i] /
                                               self.reads_by_pool[pool]))
             normalized.append(mag * (sum(current_pools_counter) /
-                                     len(t[5].pools)))
+                                     len(pools)))
 
         return normalized
 
@@ -381,12 +390,14 @@ class NRRList(object):
     :param ROI bed: amplicons already loaded into memory
     :param bool parallel: whether to count defined targets read depth in parallel
     :param bool to_classify: whether to classify defined targets regarding their read depth
+    :param list covfiles: list of paths to amplicon.cov files
     """
 
     def __init__(self, bedfile: str = None, bamfiles: list = None, region: str = None,
-                 bed: ROI = None, parallel: bool = True, to_classify: bool = False):
+                 bed: ROI = None, parallel: bool = True, to_classify: bool = False, covfiles: list = None):
         self.bedfile = bedfile
         self._bamfiles = self.bamfiles = bamfiles
+        self._covfiles = self.covfiles = covfiles
         self.region = region
         self.bed = bed
         self.list = []
@@ -399,19 +410,29 @@ class NRRList(object):
         self.__normalized_counters = []
         self.labels = None
 
-        for i, bamfile in enumerate(self.bamfiles):
-            self.list.append(NRR(bedfile=bedfile,
-                                 bamfile=bamfile,
-                                 bed=bed,
-                                 region=region,
-                                 parallel=parallel,
-                                 to_label=to_classify))
+        if self.covfiles:
+            for i, coverage_filename in enumerate(self.covfiles):
+                self.list.append(NRR(region=region,
+                                     covfile=coverage_filename,
+                                     to_label=to_classify))
+                if self.list[i].counters:
+                    self.__counters.append(self.list[i].counters)
+                    self.__normalized_counters.append(self.list[i].
+                                                      normalized_counters)
+        elif self.bamfiles:
+            for i, bamfile in enumerate(self.bamfiles):
+                self.list.append(NRR(bedfile=bedfile,
+                                     bamfile=bamfile,
+                                     bed=bed,
+                                     region=region,
+                                     parallel=parallel,
+                                     to_label=to_classify))
 
-            bed = self.list[i].bed
-            if self.list[i].counters:
-                self.__counters.append(self.list[i].counters)
-                self.__normalized_counters.append(self.list[i].
-                                                  normalized_counters)
+                bed = self.list[i].bed
+                if self.list[i].counters:
+                    self.__counters.append(self.list[i].counters)
+                    self.__normalized_counters.append(self.list[i].
+                                                      normalized_counters)
         if to_classify:
             print('Classifying targets')
             self.df, self.labels = self.__label_targets()
@@ -742,14 +763,14 @@ class NRRTest(cdf):
             for cnv in p_cnv.itertuples():
                 region = '{}:{}-{}'.format(cnv[1], cnv[2], cnv[3])
                 targets = self.getin(region)
-                for row in targets.itertuples():
-                    cnv_dict['{}:{}-{}'.format(row[5].chrom,
-                                               row[5].chromStart,
-                                               row[5].chromEnd)] = [
-                        row[5].chrom,
-                        row[5].chromStart,
-                        row[5].chromEnd,
-                        row[4], row[-1]]
+                for target in targets.itertuples():
+                    cnv_dict['{}:{}-{}'.format(target.chrom,
+                                               target.chromStart,
+                                               target.chromEnd)] = [
+                        target.chrom,
+                        target.chromStart,
+                        target.chromEnd,
+                        target.gene, target[-1]]
         cnvs = [value for k, value in cnv_dict.items()]
         cnvs.sort(key=lambda x: (x[0], x[1], x[2]))
         return cnvs
@@ -827,10 +848,12 @@ class NRRConfig(object):
         self.config = ConfigfileParser(self.filename,
                                        self.sections_params)
         # load sample test
-        sample = NRR(**self.config.sections['sample'],
+        sample = NRR(bamfile=self.config.sections['sample']['bamfile'],
+                     covfile=self.config.sections['sample']['covfile'],
                      bedfile=self.config.sections['bed']['bedfile'])
         # load baseline test
-        baseline = NRRList(**self.config.sections['baseline'],
+        baseline = NRRList(bamfiles=self.config.sections['baseline']['bamfiles'],
+                           covfiles=self.config.sections['baseline']['covfiles'],
                            bedfile=self.config.sections['bed']['bedfile'])
         # make test
         if self.config.sections['targtest']:

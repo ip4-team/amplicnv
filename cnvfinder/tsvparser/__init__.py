@@ -1,0 +1,1 @@
+from .tsvparser import CoverageFileParser
