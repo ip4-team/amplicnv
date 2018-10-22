@@ -154,7 +154,7 @@ for the creation of an exome baseline and run multiple tests using it.
 
 Amplicon coverage files
 =======================
-Amplicon coverage files, arguments "covfile" and "covfiles", are provided as output of Ion Torrent :sup:`TM` sequencers from ThermoFisher Scientific.
+Amplicon coverage files, arguments "covfile" and "covfiles", are provided as output of Ion Torrent :sup:`TM` sequencers from Thermo Fisher Scientific.
 They can be obtained from the Torrent Server by going to "Completed Runs & Results", choosing a report, clicking on "coverageAnalysis.html", clicking on the link of the desired barcode,
 sliding to the bottom of the page, clicking on "Download the amplicon coverage summary file". You'll notice this file is in *xls* format and you should
 convert it to a tab-separated values (TSV) file. This can be done in any spreadsheet editor.
