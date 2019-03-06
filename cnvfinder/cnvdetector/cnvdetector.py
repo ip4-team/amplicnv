@@ -145,7 +145,7 @@ class CNVTest(object):
         if not self.cnvdf.empty:
             chroms = sort_chroms(self.cnvdf[0].unique())
         else:
-            print("(No alterations expected)")
+            print('No alterations expected')
             chroms = None
 
         ideo = Ideogram(chroms=chroms)
