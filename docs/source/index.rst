@@ -136,10 +136,16 @@ There are other sections and parameters that can be specified:
 
 Preprocessing
 =============
-The idea of preprocessing when applying CNVfinder is that you can speed up the CNV detection
-if you store some information extracted from BAM and/or VCF files in the first time when using them. 
-Actually, this extraction task will happen every time if you don't take this 
-proprocessing step seriously! You really DO NOT want this! **BAM preprocessing** can be achieved using the nrrhandler module::
+The idea of preprocessing when applying CNVfinder is that you can speed up the CNV detection if you can
+provide pre-calculated amplicon read counts for a sample (unknown or baseline) instead of counting them
+from the BAM file.   
+
+A file containing forward and reverse counts for each amplicon ("Amplicon Coverage Summary File") is
+automatically generated for each sample by the Torrent Suite's CoverageAnalysis plugin, and can be
+downloaded from the Coverage Analysis Report page. This file can be used in lieu of preprocessed data,
+as CNVfinder is able to recognize the file structure and will extract target data accordingly.  
+
+Alternatively, **BAM preprocessing** can be achieved using the nrrhandler module::
 
 	from cnvfinder.nrrhandler import NRR
 	nrr = NRR(bedfile='path/to/file.bed', bamfile='path/to/file.bam')
@@ -149,8 +155,12 @@ The above snippet will count the number of reads in regions (defined by the BED 
 in the BAM file and store this information on a file named as '{bamfile name}.bam.txt'. The next time 
 the {bamfile name}.bam is used (file.bam in our example), the nrrhandler will get the number of reads 
 from the text file, what is way faster than extract this information from the BAM file. This is very useful 
-for the creation of an exome baseline and run multiple tests using it.
+for the creation of an exome baseline and run multiple tests using it.  
 
+Please note that if no preprocessed coverage file is listed as input in the configuration file, this 
+extraction task will be performed from BAM files during CNVfinder execution. Due to the length of the process,
+we strongly advise to use preprocessed coverage data files instead of BAM files whenever a sample is expected to
+be used multiple times in CNVfinder analyses.
 
 Amplicon coverage files
 =======================
