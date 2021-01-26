@@ -106,12 +106,19 @@ class CNVTest(object):
         """
         Save list of detected CNVs
         """
+
+        sample_input_file = self.nrrtest.sample.bamfile
+        if self.nrrtest.sample.covfile:
+            sample_input_file = self.nrrtest.sample.covfile
+
         try:
             filename = '{}/{}{}'.format(self.path2bed,
-                                        self.nrrtest.sample.bamfile.split('/')[-1],
+                                        sample_input_file.split('/')[-1],
                                         '.bed')
             bedwrite(filename, self.cnvdf, header=False)
         except AttributeError:
+            if sample_input_file is None:
+                print('Invalid (None) filename passed! Saving aborted.')
             if self.nrrtest is not None:
                 print('There is no CNV yet!')
                 print('You should run cnvtest.detect() ' +
