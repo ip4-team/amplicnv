@@ -1,4 +1,6 @@
 # Custom
+.DS_Store
+
 *.bam
 *.bai
 *.bed
