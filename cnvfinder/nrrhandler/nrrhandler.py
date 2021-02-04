@@ -779,7 +779,7 @@ class NRRTest(cdf):
                         target.sd,
                         f'cnv-{cnv_counter}',
                         target.ratio]
-                    cnv_counter += 1
+                cnv_counter += 1
         cnvs = [value for k, value in cnv_dict.items()]
         cnvs.sort(key=lambda x: (x[0], x[1], x[2]))
         return cnvs
