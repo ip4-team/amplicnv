@@ -90,7 +90,7 @@ def iqr(df: DataFrame, col: int) -> tuple:
     return q1, q3, q3 - q1
 
 
-def std(df: DataFrame, col: int) -> float64:
+def std(df: DataFrame, col: int) -> tuple:
     """
     Compute Standard Deviation (std)
 
@@ -98,7 +98,8 @@ def std(df: DataFrame, col: int) -> float64:
     :param int col: column where to look for data
     :return: std
     """
-    return df.iloc[:, col].std()
+    mean = df.iloc[:, col].mean()
+    return mean, mean, df.iloc[:, col].std()
 
 
 def below_range(test_value: float, metric: float, center: float, interval_range: float) -> bool:
@@ -144,18 +145,17 @@ def isbimodal(bafs: list, bins: Union[list, set] = {0.2, 0.4, 0.6, 0.8}, interva
     return hist[0][1] * interval_range < hist[0][0] + hist[0][2]
 
 
-def compute_metric(df: DataFrame, col: int, metric: str, center: float = 1) -> tuple:
+def compute_metric(df: DataFrame, col: int, metric: str) -> tuple:
     """
     Compute IQR or STD depending on "metric" param
 
     :param DataFrame df: dataframe that contains target data
     :param int col: column where to look for data
     :param str metric: IQR or std
-    :param number center: center of values
     :return: iqr() or std()
     """
 
     if metric == 'IQR':
         return iqr(df, col)
     else:
-        return center, center, std(df, col)
+        return std(df, col)

@@ -350,8 +350,7 @@ class NRR(object):
         df.loc[:, len(df.columns)] = counters
         filtered = df[df[0] == 'o']
         # label targets considering std
-        mean = filtered.iloc[:, 1].mean()
-        q1, q3, metric = compute_metric(filtered, 1, 'std', center=mean)
+        q1, q3, metric = compute_metric(filtered, 1, 'std')
         labels = metric2label(counters, q1, q3, metric, std_range)
         return labels
 
@@ -826,7 +825,8 @@ class NRRTest(cdf):
             print('Working on blocks of {}'.format(group['id']))
 
             for block in self.iterblocks(group, size=self.size, step=self.step):
-                med_ratio = self.filter(block['df']).loc[:, 'ratio'].median()
+                block_ratios = self.filter(block['df']).loc[:, 'ratio']
+                med_ratio = block_ratios.median() if self.metric == 'IQR' else block_ratios.mean()
                 chrom, chrom_start, chrom_end = Region(block['id']).as_tuple
                 block_data = [chrom, chrom_start, chrom_end, block['id'], med_ratio]
                 for i, interval_range in enumerate(ranges):
