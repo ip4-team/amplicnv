@@ -9,7 +9,7 @@ from typing import Union
 from plotly.offline import plot
 import plotly.graph_objs as go
 from collections import defaultdict
-from plotly import tools
+from plotly import subplots
 from ..utils import ismultlist
 
 
@@ -183,30 +183,30 @@ def histogram(x: list, filename: str = 'temp-plot.html', toplot: bool = True,
     return data[0]
 
 
-def create_subplots(mtraces: list, titles: list, layouts: list = None,
+def create_subplots(trace_matrix: list, titles: list, layouts: list = None,
                     height: int = 10000, width: int = 1250) -> go.Figure:
     """
     Make subplots using plotly.tools
 
-    :param list mtraces: multidimensional list of plotly scatter/hist
+    :param list trace_matrix: multidimensional list of plotly scatter/hist
     :param list titles: one dimensional list of titles
     :param list layouts: one dimensional list of (dicts) layouts
     :param int height: plot's height
     :param int width: plot's width
     :return: Figure
     """
-    if not ismultlist(mtraces):
-        raise ValueError('mtraces must be multidimensional!')
+    if not ismultlist(trace_matrix):
+        raise ValueError('trace_matrix must be multidimensional!')
 
-    rows = len(mtraces) * len(mtraces[0])
-    fig = tools.make_subplots(rows=rows, cols=1,
-                              subplot_titles=titles,
-                              print_grid=False)
-    for i in range(len(mtraces)):
-        for j in range(1 + i, len(mtraces[i]) + 1 + i):
-            m = len(mtraces)
-            s = len(mtraces) - 1
-            for trace in mtraces[i][j - (1 + i)]:
+    rows = len(trace_matrix) * len(trace_matrix[0])
+    fig = subplots.make_subplots(rows=rows, cols=1,
+                                 subplot_titles=titles,
+                                 print_grid=False)
+    for i in range(len(trace_matrix)):
+        for j in range(1 + i, len(trace_matrix[i]) + 1 + i):
+            m = len(trace_matrix)
+            s = len(trace_matrix) - 1
+            for trace in trace_matrix[i][j - (1 + i)]:
                 fig.append_trace(trace, j * m - s - i, 1)
             if layouts is not None:
                 fig['layout']['xaxis{}'.format(j * m - s - i)].update(layouts[i]['x'])

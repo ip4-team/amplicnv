@@ -759,18 +759,33 @@ class NRRTest(cdf):
         :return: list of CNV blocks merged
         """
         cnv_dict = defaultdict(list)
+        cnv_counter = 1
         for p_cnv in potential_cnvs:
             for cnv in p_cnv.itertuples():
                 region = '{}:{}-{}'.format(cnv[1], cnv[2], cnv[3])
                 targets = self.getin(region)
                 for target in targets.itertuples():
-                    cnv_dict['{}:{}-{}'.format(target.chrom,
+                    region = '{}:{}-{}'.format(target.chrom,
                                                target.chromStart,
-                                               target.chromEnd)] = [
-                        target.chrom,
-                        target.chromStart,
-                        target.chromEnd,
-                        target.gene, target[-1]]
+                                               target.chromEnd)
+                    cnv_id = f'cnv-{cnv_counter}'
+                    if region in cnv_dict:
+                        cnv_dict[region][-2] = cnv_dict[region][-2] + f'; {cnv_id}'
+
+                    else:
+                        cnv_dict[region] = [
+                            target.chrom,
+                            target.chromStart,
+                            target.chromEnd,
+                            target.gene,
+                            target.counter,
+                            target.mean,
+                            target.norm_counter,
+                            target.norm_mean,
+                            target.sd,
+                            cnv_id,
+                            target.ratio]
+                cnv_counter += 1
         cnvs = [value for k, value in cnv_dict.items()]
         cnvs.sort(key=lambda x: (x[0], x[1], x[2]))
         return cnvs
