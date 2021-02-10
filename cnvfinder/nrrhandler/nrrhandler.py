@@ -636,18 +636,9 @@ class NRRTest(cdf):
 
         try:
             for i in range(len(self.sample.counters)):
-                if self.baseline.mean[i] > self.minread:
-                    ratios.append(self.sample.normalized_counters[i] /
-                                  self.baseline.normalized_mean[i])
-                else:
-                    if ratios:
-                        ratios.append(ratios[-1])
-                    else:
-                        ratios.append(1)
-
+                ratios.append(self.sample.normalized_counters[i] / self.baseline.normalized_mean[i])
             self.ratios = ratios
-            if self.ratios:
-                self._createdf()
+            self._createdf()
         except IndexError:
             print('Amount of read counters (baseline and sample) differ')
             print('Are their region targets different? Aborting!')
