@@ -778,6 +778,7 @@ class NRRTest(cdf):
                             target.norm_counter,
                             target.norm_mean,
                             target.sd,
+                            (target.sd / target.norm_mean) * 100,
                             cnv_id,
                             target.ratio]
                 cnv_counter += 1
