@@ -647,6 +647,7 @@ class VCFConfig(object):
         self.config = ConfigfileParser(self.filename,
                                        self.sections_params)
         # load sample test
+        # TODO load files only from vartest section
         if self.config.sections['sample']['vcffile']:
             sample = VCF(self.config.sections['sample']['vcffile'])
         else:

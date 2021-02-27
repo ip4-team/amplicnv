@@ -201,7 +201,7 @@ class CNVConfig(object):
         self.config = ConfigfileParser(self.filename,
                                        self.sections_params)
         nrrtest = NRRConfig(filename).nrrtest if ratio else None
-        vcftest = VCFConfig(filename).vcftest if variant else None
+        vcftest = VCFConfig(filename).vcftest if variant and self.config.sections['vartest'] else None
         self.cnvtest = CNVTest(nrrtest, vcftest,
                                path=self.config.sections['output']['path'])
         self.cnvtest.analyze_plot()
