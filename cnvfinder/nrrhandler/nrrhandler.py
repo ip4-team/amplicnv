@@ -813,6 +813,7 @@ class NRRTest(cdf):
                             (target.sd / target.norm_mean) * 100 if target.norm_mean > 0 else 'NA',
                             target.norm_median,
                             target.iqr,
+                            (target.iqr / target.norm_median) * 100 if target.norm_median > 0 else 'NA',
                             target.mad,
                             cnv_id,
                             target.ratio]
