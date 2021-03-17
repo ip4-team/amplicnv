@@ -470,6 +470,7 @@ class NRRList(object):
         self.iqr = []
         if self.__counters and len(self.__counters) == len(self.list):
             try:
+                self.median = [np.median(c) for c in zip(*self.__counters)]
                 self.normalized_median = [np.median(c) for c in zip(*self.__normalized_counters)]
                 self.iqr = [np.subtract(*np.percentile(c, [75, 25])) for c in zip(*self.__normalized_counters)]
                 self.mad = [np.median(np.absolute(c - np.median(c))) for c in zip(*self.__normalized_counters)]
@@ -580,6 +581,7 @@ class NRRTest(cdf):
                         'amplicon',
                         'counter',
                         'mean',
+                        'median',
                         'norm_counter',
                         'norm_mean',
                         'sd',
@@ -639,6 +641,7 @@ class NRRTest(cdf):
         df = self.sample.bed.targets.copy()
         df.loc[:, len(df.columns)] = self.sample.counters
         df.loc[:, len(df.columns)] = self.baseline.mean
+        df.loc[:, len(df.columns)] = self.baseline.median
         df.loc[:, len(df.columns)] = self.sample.normalized_counters
         df.loc[:, len(df.columns)] = self.baseline.normalized_mean
         df.loc[:, len(df.columns)] = self.baseline.sd
@@ -803,6 +806,7 @@ class NRRTest(cdf):
                             target.gene,
                             target.counter,
                             target.mean,
+                            target.median,
                             target.norm_counter,
                             target.norm_mean,
                             target.sd,
