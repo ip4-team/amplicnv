@@ -555,7 +555,7 @@ class NRRTest(cdf):
 
     def __init__(self, baseline: NRRList, sample: NRR, path: str = 'results',
                  size: int = 200, step: int = 10, metric: str = 'std', interval_range: float = 3,
-                 minread: int = 30, below_cutoff: float = 0.7, above_cutoff: float = 1.3,
+                 minread: int = 25, below_cutoff: float = 0.7, above_cutoff: float = 1.3,
                  maxdist: int = 15000000, cnv_like_range: float = 0.7,
                  bins=500, method='chr_group'):
         super().__init__(None)
@@ -712,7 +712,7 @@ class NRRTest(cdf):
         :param DataFrame df: dataframe to be filtered
         :return: filtered dataframe
         """
-        return df[df.loc[:, 'mean'] >= self.minread]
+        return df[df.loc[:, 'median'] >= self.minread]
 
     @staticmethod
     def __remean(ratios, bins, method):
@@ -813,8 +813,8 @@ class NRRTest(cdf):
                             (target.sd / target.norm_mean) * 100 if target.norm_mean > 0 else 'NA',
                             target.norm_median,
                             target.iqr,
-                            (target.iqr / target.norm_median) * 100 if target.norm_median > 0 else 'NA',
                             target.mad,
+                            (target.mad / target.norm_median) * 100 if target.norm_median > 0 else 'NA',
                             cnv_id,
                             target.ratio]
                 cnv_counter += 1
