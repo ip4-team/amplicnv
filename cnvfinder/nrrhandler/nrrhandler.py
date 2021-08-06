@@ -290,7 +290,7 @@ class NRR(object):
         print('Counting reads by pools')
         targets = list(self.bed.targets.itertuples())
         if len(targets) != len(self.counters):
-            print('Number of targets and their read counters differ.')
+            print(f'Number of targets N={len(targets)} and their read counters N={len(self.counters)} differ.')
             print('Aborting!')
             return None
 
