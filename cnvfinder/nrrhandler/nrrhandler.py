@@ -11,7 +11,7 @@ from multiprocessing import cpu_count
 from typing import Union
 
 import pysam
-from numpy import log
+import numpy as np
 from pandas import DataFrame
 
 from cnvfinder.tsvparser import CoverageFileParser
@@ -290,7 +290,7 @@ class NRR(object):
         print('Counting reads by pools')
         targets = list(self.bed.targets.itertuples())
         if len(targets) != len(self.counters):
-            print('Number of targets and their read counters differ.')
+            print(f'Number of targets N={len(targets)} and their read counters N={len(self.counters)} differ.')
             print('Aborting!')
             return None
 
@@ -338,7 +338,7 @@ class NRR(object):
         if mode == 'normalized':
             counters = self.normalized_counters
         elif mode == 'log':
-            counters = log(self.normalized_counters)
+            counters = np.log(self.normalized_counters)
         else:
             counters = self.counters
         df = DataFrame(counters)
@@ -350,8 +350,7 @@ class NRR(object):
         df.loc[:, len(df.columns)] = counters
         filtered = df[df[0] == 'o']
         # label targets considering std
-        mean = filtered.iloc[:, 1].mean()
-        q1, q3, metric = compute_metric(filtered, 1, 'std', center=mean)
+        q1, q3, metric = compute_metric(filtered, 1, 'std')
         labels = metric2label(counters, q1, q3, metric, std_range)
         return labels
 
@@ -402,9 +401,13 @@ class NRRList(object):
         self.bed = bed
         self.list = []
         self.mean = []
-        self.sd = []
         self.median = []
         self.normalized_mean = []
+        self.sd = []
+        self.normalized_median = []
+        self.iqr = []
+        self.mad = []
+
         # caches counters
         self.__counters = []
         self.__normalized_counters = []
@@ -458,6 +461,22 @@ class NRRList(object):
     def save(self):
         for nrr in self.list:
             nrr.save(filename=nrr.bamfile + '.txt')
+
+    def compute_metrics(self):
+        """
+        Compute baseline read depth median and iqr for each defined target
+        """
+        self.normalized_median = []
+        self.iqr = []
+        if self.__counters and len(self.__counters) == len(self.list):
+            try:
+                self.median = [np.median(c) for c in zip(*self.__counters)]
+                self.normalized_median = [np.median(c) for c in zip(*self.__normalized_counters)]
+                self.iqr = [np.subtract(*np.percentile(c, [75, 25])) for c in zip(*self.__normalized_counters)]
+                self.mad = [np.median(np.absolute(c - np.median(c))) for c in zip(*self.__normalized_counters)]
+            except TypeError:
+                print('Amount of read counters (baseline and sample) differ')
+                print('Are their region targets different? Aborting!')
 
     def make_mean(self):
         """
@@ -535,8 +554,8 @@ class NRRTest(cdf):
     """
 
     def __init__(self, baseline: NRRList, sample: NRR, path: str = 'results',
-                 size: int = 200, step: int = 10, metric: str = 'std', interval_range: float = 3,
-                 minread: int = 30, below_cutoff: float = 0.7, above_cutoff: float = 1.3,
+                 size: int = 200, step: int = 10, metric: str = 'IQR', interval_range: float = 1.5,
+                 minread: int = 25, below_cutoff: float = 0.7, above_cutoff: float = 1.3,
                  maxdist: int = 15000000, cnv_like_range: float = 0.7,
                  bins=500, method='chr_group'):
         super().__init__(None)
@@ -562,9 +581,13 @@ class NRRTest(cdf):
                         'amplicon',
                         'counter',
                         'mean',
+                        'median',
                         'norm_counter',
                         'norm_mean',
                         'sd',
+                        'norm_median',
+                        'iqr',
+                        'mad',
                         'ratio']
         self.rootname = 'ratios'
         self.path2plot = appenddir(self.path, 'plots/bam/ratios')
@@ -614,12 +637,17 @@ class NRRTest(cdf):
         create NRRTest dataframe with sample, baseline, and
         test data
         """
+        # TODO use pd.concat
         df = self.sample.bed.targets.copy()
         df.loc[:, len(df.columns)] = self.sample.counters
         df.loc[:, len(df.columns)] = self.baseline.mean
+        df.loc[:, len(df.columns)] = self.baseline.median
         df.loc[:, len(df.columns)] = self.sample.normalized_counters
         df.loc[:, len(df.columns)] = self.baseline.normalized_mean
         df.loc[:, len(df.columns)] = self.baseline.sd
+        df.loc[:, len(df.columns)] = self.baseline.normalized_median
+        df.loc[:, len(df.columns)] = self.baseline.iqr
+        df.loc[:, len(df.columns)] = self.baseline.mad
         df.loc[:, len(df.columns)] = self.ratios
         df.columns = self.columns
         self.df = df
@@ -631,20 +659,18 @@ class NRRTest(cdf):
         """
         print('Calculating reference bam files # reads mean')
         self.baseline.make_mean()
+        print('Calculating reference bam files # reads median')
+        self.baseline.compute_metrics()
 
         print('Calculating # reads test sample/ baseline')
         ratios = []
 
         try:
             for i in range(len(self.sample.counters)):
-                if self.baseline.mean[i] > self.minread:
-                    ratios.append(self.sample.normalized_counters[i] /
-                                  self.baseline.normalized_mean[i])
+                if self.baseline.median[i] > 0:
+                    ratios.append(self.sample.normalized_counters[i] / self.baseline.normalized_median[i])
                 else:
-                    if ratios:
-                        ratios.append(ratios[-1])
-                    else:
-                        ratios.append(1)
+                    ratios.append(1)
 
             self.ratios = ratios
             if self.ratios:
@@ -686,7 +712,7 @@ class NRRTest(cdf):
         :param DataFrame df: dataframe to be filtered
         :return: filtered dataframe
         """
-        return df[df.loc[:, 'mean'] >= self.minread]
+        return df[df.loc[:, 'median'] >= self.minread]
 
     @staticmethod
     def __remean(ratios, bins, method):
@@ -780,9 +806,15 @@ class NRRTest(cdf):
                             target.gene,
                             target.counter,
                             target.mean,
+                            target.median,
                             target.norm_counter,
                             target.norm_mean,
                             target.sd,
+                            (target.sd / target.norm_mean) * 100 if target.norm_mean > 0 else 'NA',
+                            target.norm_median,
+                            target.iqr,
+                            target.mad,
+                            (target.mad / target.norm_median) * 100 if target.norm_median > 0 else 'NA',
                             cnv_id,
                             target.ratio]
                 cnv_counter += 1
@@ -826,7 +858,8 @@ class NRRTest(cdf):
             print('Working on blocks of {}'.format(group['id']))
 
             for block in self.iterblocks(group, size=self.size, step=self.step):
-                med_ratio = self.filter(block['df']).loc[:, 'ratio'].median()
+                block_ratios = self.filter(block['df']).loc[:, 'ratio']
+                med_ratio = block_ratios.median() if self.metric == 'IQR' else block_ratios.mean()
                 chrom, chrom_start, chrom_end = Region(block['id']).as_tuple
                 block_data = [chrom, chrom_start, chrom_end, block['id'], med_ratio]
                 for i, interval_range in enumerate(ranges):
@@ -883,7 +916,7 @@ class NRRConfig(object):
         if self.nrrtest.ratios:
             print('Creating plots at {}'.format(self.nrrtest.path2plot))
             self.nrrtest.plot()
-            filename = '{}/nrrtest.csv'.format(self.nrrtest.path2table)
+            filename = '{}/nrrtest.tsv'.format(self.nrrtest.path2table)
             print('Writing table at {}'.format(filename))
             self.nrrtest.df.to_csv(filename, sep='\t', index=False)
             print('Done!')

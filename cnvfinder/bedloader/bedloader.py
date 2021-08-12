@@ -71,7 +71,7 @@ class ROI(object):
             bed_file = BedFileLoader(bedfile)
             lines = bed_file.expand_columns()
 
-        self.amplicons = self.load_amplicons(lines, maxpool, 8)
+        self.amplicons = self.load_amplicons(lines, maxpool, -1)
         if self.amplicons:
             self.targets = self.define_targets(spacing, mindata)
         else:
@@ -110,12 +110,12 @@ class ROI(object):
         amplicons.sort(key=lambda x: (x.chromosome, x.chromStart, x.chromEnd))
         return amplicons
 
-    def define_targets(self, spacing, mindata) -> DataFrame:
+    def define_targets(self, spacing, min_data) -> DataFrame:
         """
         Return valid targets for further analysis. Each target is in the form: (chromosome, start, end, Amplicon)
 
         :param int spacing: number of nucleotides to ignore at amplicon start and end, to avoid overlapping reads
-        :param int mindata: minimum number of nucleotides for a valid target
+        :param int min_data: minimum number of nucleotides for a valid target
         :return: a dataframe of targets
         """
         print('Defining targets...')
@@ -145,7 +145,7 @@ class ROI(object):
                                self.amplicons[i + 1].chromStart - spacing)
 
             # Valid amplicons must be at least `mindata` nt long:
-            if this_end - this_start >= mindata:
+            if this_end - this_start >= min_data:
                 targets.append((
                     this_chrom,
                     this_start,
@@ -164,51 +164,45 @@ class Amplicon(object):
     """
     Hold data for each amplicon listed in the BED file
 
-    :param list beddata: is the line in the .bed file corresponding to the amplicon
-    :param int pool_loc: location of pool data in beddata
-    :param int maxpool: maximum number of origin pools allowed for a valid target
+    :param list bed_data: is the line in the .bed file corresponding to the amplicon
+    :param int pool_loc: location of pool data in bed_data
+    :param int max_pool: maximum number of origin pools allowed for a valid target
     """
 
-    fields = [('chrom', str),
-              ('chromStart', int),
-              ('chromEnd', int),
-              ('regionId', RegionId),
-              ('score', maybeint),
-              ('strand', str),
-              ('frame', str),
-              ('gene', GeneId),
-              ('pools', Pool),
-              ('submittedRegion', maybeint)]
-
-    fieldnames = {field[0] for field in fields}
-
-    def __new__(cls, beddata: list, pool_loc: int, maxpool: int = None):
+    def __new__(cls, bed_data: list, pool_loc: int, max_pool: int = None):
         """
         Verify the need to create an Amplicon object
 
-        :param list beddata: is the line in the .bed file corresponding to the amplicon
-        :param int pool_loc: location of pool data in beddata
-        :param int maxpool: maximum number of origin pools allowed for a valid target
+        :param list bed_data: is the line in the .bed file corresponding to the amplicon
+        :param int pool_loc: location of pool data in bed_data
+        :param int max_pool: maximum number of origin pools allowed for a valid target
         :return: None or cls
         """
-        pools = beddata[pool_loc]
+        pools = bed_data[pool_loc]
 
-        # No region constraint and no # maxpool defined
-        if not maxpool:
+        if not max_pool:
             return object.__new__(cls)
 
-        if maxpool:
-            # Number of pools > maxpool -> False
-            if len(pools) > maxpool:
+        if max_pool:
+            if len(pools) > max_pool:
                 return None
         return object.__new__(cls)
 
-    def __init__(self, beddata: list, pool_loc: int, maxpool: int = None):
-        self.maxpool = maxpool
-        # Load attribute data
-        for i in range(len(beddata)):
-            setattr(self, self.fields[i][0], self.fields[i][1](beddata[i]))
-        self.pools = beddata[pool_loc]
+    def __init__(self, bed_data: list, pool_loc: int, max_pool: int = None):
+        fields = [('chrom', str),
+                  ('chromStart', int),
+                  ('chromEnd', int),
+                  ('regionId', RegionId),
+                  ('score', maybeint)]
+        if len(bed_data) > 7:
+            fields = fields + [('strand', str), ('frame', str)]
+        self.fields = fields + [('gene', GeneId), ('pools', Pool), ('submittedRegion', maybeint)]
+        self.fieldnames = {field[0] for field in fields}
+        self.max_pool = max_pool
+
+        for i in range(len(bed_data)):
+            setattr(self, self.fields[i][0], self.fields[i][1](bed_data[i]))
+        self.pools = bed_data[pool_loc]
         chromosome = self.chrom.split('chr')[-1]
         try:
             self.chromosome = '{:0>2}'.format(int(chromosome))

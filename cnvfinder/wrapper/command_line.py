@@ -174,9 +174,9 @@ class CNVFinderWrapper(object):
                                 help=get_arg_help_from_enum(ArgDesc.size))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.step), type=int, default=10,
                                 help=get_arg_help_from_enum(ArgDesc.step))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.metric), type=str, default='std', choices={'std', 'IQR'},
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.metric), type=str, default='IQR', choices={'std', 'IQR'},
                                 help=get_arg_help_from_enum(ArgDesc.metric))
-            parser.add_argument(get_arg_name_from_enum(ArgDesc.interval_range), type=float, default=3,
+            parser.add_argument(get_arg_name_from_enum(ArgDesc.interval_range), type=float, default=1.5,
                                 help=get_arg_help_from_enum(ArgDesc.interval_range))
             parser.add_argument(get_arg_name_from_enum(ArgDesc.min_read), type=int, default=30,
                                 help=get_arg_help_from_enum(ArgDesc.min_read))
