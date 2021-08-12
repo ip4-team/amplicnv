@@ -554,7 +554,7 @@ class NRRTest(cdf):
     """
 
     def __init__(self, baseline: NRRList, sample: NRR, path: str = 'results',
-                 size: int = 200, step: int = 10, metric: str = 'std', interval_range: float = 3,
+                 size: int = 200, step: int = 10, metric: str = 'IQR', interval_range: float = 1.5,
                  minread: int = 25, below_cutoff: float = 0.7, above_cutoff: float = 1.3,
                  maxdist: int = 15000000, cnv_like_range: float = 0.7,
                  bins=500, method='chr_group'):
