@@ -1,4 +1,4 @@
-CNVfinder's code documentation
+ampliCNV's code documentation
 ------------------------------
 
 .. toctree::
@@ -6,7 +6,7 @@ CNVfinder's code documentation
 
 cnvdetector
 ===========
-.. automodule:: cnvfinder.cnvdetector
+.. automodule:: amplicnv.cnvdetector
 .. autoclass:: CNVTest
     :members:
 .. autoclass:: CNVConfig
@@ -14,7 +14,7 @@ cnvdetector
 
 nrrhandler
 ==========
-.. automodule:: cnvfinder.nrrhandler
+.. automodule:: amplicnv.nrrhandler
 .. autoclass:: NRR
     :members:
 .. autoclass:: NRRList
@@ -23,11 +23,11 @@ nrrhandler
     :members:
 .. autoclass:: NRRConfig
     :members:
-.. automethod:: cnvfinder.nrrhandler.readcount
+.. automethod:: amplicnv.nrrhandler.readcount
 
 vcfhandler
 ==========
-.. automodule:: cnvfinder.vcfhandler
+.. automodule:: amplicnv.vcfhandler
 .. autoclass:: VCF
     :members:
 .. autoclass:: VCFList
@@ -39,18 +39,18 @@ vcfhandler
 
 bedloader
 =========
-.. automodule:: cnvfinder.bedloader
+.. automodule:: amplicnv.bedloader
 .. autoclass:: ROI
     :members:
 
 tsvparser
 =========
-.. automodule:: cnvfinder.tsvparser
+.. automodule:: amplicnv.tsvparser
 .. autoclass:: CoverageFileParser
     :members:
 
 ideogram
 ========
-.. automodule:: cnvfinder.ideogram
+.. automodule:: amplicnv.ideogram
 .. autoclass:: Ideogram
     :members:

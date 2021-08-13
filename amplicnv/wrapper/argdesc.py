@@ -64,13 +64,13 @@ class Strings(Enum):
     get_command_error = 'Cannot find {} \"command\". This is likely a bug. Please, report it at {}'
 
     # usage
-    usage = 'cnvfinder {} [<args>]'
-    issue_url = 'https://github.com/ip4-team/cnvfinder/issues'
+    usage = 'amplicnv {} [<args>]'
+    issue_url = 'https://github.com/ip4-team/amplicnv/issues'
     command = 'command'
     command_help = 'Module to run'
-    description = 'CNVfinder is a Python 3.x package for copy number (CNV) variation detection on whole exome ' \
+    description = 'ampliCNV is a Python 3.x package for copy number (CNV) variation detection on whole exome ' \
                   'sequencing (WES) data from amplicon-based enrichment technologies '
-    getting_help = 'For getting help of a specific command use: cnvfinder <command> --help'
+    getting_help = 'For getting help of a specific command use: amplicnv <command> --help'
     available_commands = 'Available commands:'
     detect_description = 'Detect copy number variation in a test sample applying read depth and variant data'
     count_description = 'Count the number of reads aligned to each target'
@@ -81,13 +81,13 @@ class Strings(Enum):
     bedloader_description = 'Define targets from amplicons located in a BED file'
     ideogram_description = 'Create ideograms for visualization of chromosomes and other genomic tracks'
     cfg = '\n\tpassing arguments using a configuration file.\n\tSee example: ' \
-          'http://cnvfinder.readthedocs.io/en/latest/#configuration-file '
+          'http://amplicnv.readthedocs.io/en/latest/#configuration-file '
     no_rd = 'Do not apply read depth data'
     no_vcf = 'Do not apply variant data'
     cfg_file = 'Path to configuration file'
 
     # defaults
-    default_outdir = 'cnvfinder_results'
+    default_outdir = 'amplicnv_results'
 
 
 class ArgDesc(Enum):

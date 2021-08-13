@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import BrokenBarHCollection
 from matplotlib.patches import Patch
 
-from cnvfinder.utils import resource_path_or_exit
+from amplicnv.utils import resource_path_or_exit
 
 """
  attribution: this file (ideogram.py) is based on https://gist.github.com/daler/c98fc410282d7570efc3
