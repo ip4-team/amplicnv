@@ -1,9 +1,9 @@
-.. CNVfinder documentation master file, created by
+.. ampliCNV documentation master file, created by
    sphinx-quickstart on Mon Sep  4 09:41:10 2017.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-CNVfinder's documentation
+ampliCNV's documentation
 --------------------------
 
 .. toctree::
@@ -13,22 +13,22 @@ CNVfinder's documentation
 
 
 
-What is **CNVfinder**?
+What is **ampliCNV**?
 ======================
-CNVfinder is a **Python 3.x** package for copy number variation (CNV) detection on whole exome sequencing (WES) data from amplicon-based enrichment technologies.
-CNVfinder was designed to please three kind of people: those familiar with coding, those more comfortable with user friendly programs, and those who fit both styles.
+ampliCNV is a **Python 3.x** package for copy number variation (CNV) detection on whole exome sequencing (WES) data from amplicon-based enrichment technologies.
+ampliCNV was designed to please three kind of people: those familiar with coding, those more comfortable with user friendly programs, and those who fit both styles.
 
-CNVfinder is split in several modules and the main modules are: **nrrhandler**; **vcfhandler**; and **cnvdetector**. Their name speak for themselves: nrrhandler handles number of reads in regions loaded from BAM files using pysam.AlignmentFile, vcfhandler handles VCF files using pysam.VariantFile, and finally, cnvdetector puts all modules together for CNV detection.
+ampliCNV is split in several modules and the main modules are: **nrrhandler**; **vcfhandler**; and **cnvdetector**. Their name speak for themselves: nrrhandler handles number of reads in regions loaded from BAM files using pysam.AlignmentFile, vcfhandler handles VCF files using pysam.VariantFile, and finally, cnvdetector puts all modules together for CNV detection.
 
 Installation
 ============
-CNVfinder and its dependencies can be easily installed using the `Python Package Index <https://pypi.python.org/pypi/pip>`_ (PIP)::
+ampliCNV and its dependencies can be easily installed using the `Python Package Index <https://pypi.python.org/pypi/pip>`_ (PIP)::
 
-	pip3 install -U cnvfinder
+	pip3 install -U amplicnv
 
 Dependencies
 ============
-All dependencies are installed when using the command above, however, if you want to install/use CNVfinder in other ways, you should install the lastest version of the distributions:
+All dependencies are installed when using the command above, however, if you want to install/use ampliCNV in other ways, you should install the lastest version of the distributions:
 
 * **scipy**: ``pip3 install -U scipy``
 * **scikit-learn**: ``pip3 install -U scikit-learn``
@@ -46,9 +46,9 @@ When running the cnvdetector module, keep in mind the following assumptions:
 
 Running tests
 =============
-After installing CNVfinder, all you have to do is to create a config file (`here it's how to do it <#configuration-file>`_), do some preprocessing (`check it here <#preprocessing>`_), and type the following on the Python command line::
+After installing ampliCNV, all you have to do is to create a config file (`here it's how to do it <#configuration-file>`_), do some preprocessing (`check it here <#preprocessing>`_), and type the following on the Python command line::
 
-	from cnvfinder import CNVConfig
+	from amplicnv import CNVConfig
 	CNVConfig('/path/to/file/filename.ini')
 
 This will provide you with some beautiful graphics and a BED file for visualization of the detected CNVs on `IGV <http://software.broadinstitute.org/software/igv/>`_. After all, one thing to keep in mind is that BAM files are normally very large, what means that the above script will take a while to finish. However, you can use our nrrhandler module in order to speed the things up for future CNV detection tests that will be using the same BAM files (`see here <#preprocessing>`_).
@@ -119,7 +119,7 @@ There are other sections and parameters that can be specified:
 	* **method**: method used for bins creation (block, window, or chr_group are available)
 	* **size**: when using mode 'block', the block size can be specified. Default: 200
 	* **step**: when using mode 'block', the step between two consecutive blocks can be specified. Default: 10
-	* **metric**: measure of variability to be used when analyzing sample ratios. Standard deviation (std) and interquartile range (IQR) are available. Default: std/IQR.
+	* **metric**: measure of variability to be used when analyzing sample ratios. Standard deviation (std) and interquartile range (IQR) are available. Default: IQR.
 	* **interval_range**: multiplier used when applying IQR or std. Default: 3 for std and 1.5 for IQR.
 	* **cnv_like_range**: multiplier used when applying IQR or std. Default: 0.7 * interval_range.
 	* **maxdist**: maximum distance allowed between a cnv-like block to a cnv block in order to the cnvlike block be a valid cnv. Default: 15000000.
@@ -136,18 +136,18 @@ There are other sections and parameters that can be specified:
 
 Preprocessing
 =============
-The idea of preprocessing when applying CNVfinder is that you can speed up the CNV detection if you can
+The idea of preprocessing when applying ampliCNV is that you can speed up the CNV detection if you can
 provide pre-calculated amplicon read counts for a sample (unknown or baseline) instead of counting them
 from the BAM file.   
 
 A file containing forward and reverse counts for each amplicon ("Amplicon Coverage Summary File") is
 automatically generated for each sample by the Torrent Suite's CoverageAnalysis plugin, and can be
 downloaded from the Coverage Analysis Report page. This file can be used in lieu of preprocessed data,
-as CNVfinder is able to recognize the file structure and will extract target data accordingly.  
+as ampliCNV is able to recognize the file structure and will extract target data accordingly.
 
 Alternatively, **BAM preprocessing** can be achieved using the nrrhandler module::
 
-	from cnvfinder.nrrhandler import NRR
+	from amplicnv.nrrhandler import NRR
 	nrr = NRR(bedfile='path/to/file.bed', bamfile='path/to/file.bam')
 	nrr.save()
 
@@ -158,9 +158,9 @@ from the text file, what is way faster than extract this information from the BA
 for the creation of an exome baseline and run multiple tests using it.  
 
 Please note that if no preprocessed coverage file is listed as input in the configuration file, this 
-extraction task will be performed from BAM files during CNVfinder execution. Due to the length of the process,
+extraction task will be performed from BAM files during ampliCNV execution. Due to the length of the process,
 we strongly advise to use preprocessed coverage data files instead of BAM files whenever a sample is expected to
-be used multiple times in CNVfinder analyses.
+be used multiple times in ampliCNV analyses.
 
 Amplicon coverage files
 =======================
@@ -169,5 +169,5 @@ They can be obtained from the Torrent Server by going to "Completed Runs & Resul
 sliding to the bottom of the page, clicking on "Download the amplicon coverage summary file". You'll notice this file is in *xls* format and you should
 convert it to a tab-separated values (TSV) file. This can be done in any spreadsheet editor.
 
-Having issues using CNVfinder?
-You can contact us at our `Github project page <https://github.com/ip4-team/cnvfinder>`_ and we'll be very happy in helping you. 
+Having issues using ampliCNV?
+You can contact us at our `Github project page <https://github.com/ip4-team/amplicnv>`_ and we'll be very happy in helping you.

@@ -14,7 +14,7 @@ import pysam
 import numpy as np
 from pandas import DataFrame
 
-from cnvfinder.tsvparser import CoverageFileParser
+from amplicnv.tsvparser import CoverageFileParser
 from ..bedloader import ROI
 from ..commons import ChromDF as cdf
 from ..graphics import scatter

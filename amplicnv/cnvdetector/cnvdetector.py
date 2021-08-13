@@ -4,10 +4,10 @@
 
 @author: valengo
 """
-from cnvfinder.ideogram import Ideogram
-from cnvfinder.nrrhandler import NRRTest
-from cnvfinder.utils.utils import bedwrite, sort_chroms
-from cnvfinder.vcfhandler import VCFTest
+from amplicnv.ideogram import Ideogram
+from amplicnv.nrrhandler import NRRTest
+from amplicnv.utils.utils import bedwrite, sort_chroms
+from amplicnv.vcfhandler import VCFTest
 from ..utils import ConfigfileParser
 from ..nrrhandler import NRRConfig
 from ..vcfhandler import VCFConfig

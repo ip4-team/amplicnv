@@ -11,7 +11,7 @@ from enum import Enum
 
 import sys
 
-from cnvfinder.wrapper.argdesc import Strings
+from amplicnv.wrapper.argdesc import Strings
 
 
 def create_parser(description: str, command: str = Strings.command.value, usage: str = None) -> argparse.ArgumentParser:

@@ -12,7 +12,7 @@ from codecs import open
 from os import path
 
 here = path.abspath(path.dirname(__file__))
-name = 'cnvfinder'
+name = 'amplicnv'
 
 # get the long description from the README file
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
@@ -24,13 +24,13 @@ setup(
     # versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.0.0b5',
+    version='1.0.0b6',
 
     description='A Python3.x package for CNV detection',
     long_description=long_description,
 
     # the project's main homepage.
-    url='https://github.com/ip4-team/cnvfinder',
+    url='https://github.com/ip4-team/amplicnv',
 
     # author details
     author='IP4 Team',
@@ -70,13 +70,14 @@ setup(
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
-    # py_modules=["nrrhandler", "vcfhandler", "cnvfinder", "bedloader"],
+    # py_modules=["nrrhandler", "vcfhandler", "amplicnv", "bedloader"],
 
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['pysam', 'pandas', 'plotly', 'numpy', 'scikit-learn', 'scipy', 'numexpr', 'matplotlib', 'bedhandler'],
+    install_requires=['pysam', 'pandas', 'plotly', 'numpy', 'scikit-learn',
+                      'scipy', 'numexpr', 'matplotlib', 'bedhandler'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
@@ -107,7 +108,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
        'console_scripts': [
-           'cnvfinder=cnvfinder.wrapper.command_line:main'
+           'amplicnv=amplicnv.wrapper.command_line:main'
        ]
     }
 )

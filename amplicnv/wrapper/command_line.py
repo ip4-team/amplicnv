@@ -9,18 +9,18 @@ from abc import ABCMeta
 from abc import abstractmethod
 from collections import defaultdict
 
-from cnvfinder import CNVTest, CNVConfig
-from cnvfinder.bedloader import ROI
-from cnvfinder.ideogram import Ideogram
-from cnvfinder.nrrhandler import NRR, NRRList, NRRTest, NRRConfig
-from cnvfinder.utils.utils import bedwrite
-from cnvfinder.vcfhandler import VCF, VCFList, VCFTest, VCFConfig
-from cnvfinder.wrapper.argdesc import ArgDesc, Strings
-from cnvfinder.wrapper.utils import get_arg_name_from_enum, get_arg_help_from_enum, getattr_by, parse_sub_command, \
+from amplicnv import CNVTest, CNVConfig
+from amplicnv.bedloader import ROI
+from amplicnv.ideogram import Ideogram
+from amplicnv.nrrhandler import NRR, NRRList, NRRTest, NRRConfig
+from amplicnv.utils.utils import bedwrite
+from amplicnv.vcfhandler import VCF, VCFList, VCFTest, VCFConfig
+from amplicnv.wrapper.argdesc import ArgDesc, Strings
+from amplicnv.wrapper.utils import get_arg_name_from_enum, get_arg_help_from_enum, getattr_by, parse_sub_command, \
     create_parser, load_table, parse_legend
 
 
-class CNVFinderWrapper(object):
+class AmpliCNVPackageWrapper(object):
     def __init__(self):
 
         self.__nrr_comparator = None
@@ -455,4 +455,4 @@ class CNVFinderWrapper(object):
 
 
 def main():
-    CNVFinderWrapper()
+    AmpliCNVPackageWrapper()
